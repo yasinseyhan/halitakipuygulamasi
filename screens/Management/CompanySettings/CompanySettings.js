@@ -22,11 +22,12 @@ const CompanySettings = ({ navigation }) => {
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaType.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
     });
+    console.log(result);
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setLogoUrl(result.assets[0].uri);

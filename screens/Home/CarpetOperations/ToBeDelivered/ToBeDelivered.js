@@ -1,6 +1,3 @@
-// src/screens/Home/OrderOperations/ToBeDelivered/ToBeDelivered.js
-// Bu dosya Teslim Edilecek (yani müşteriye götürülen) siparişleri listeler.
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  StyleSheet,
 } from "react-native";
 import {
   collection,
@@ -23,6 +19,8 @@ import {
 } from "firebase/firestore";
 import { firestore } from "../../../../src/firebaseConfig"; // Firestore yapılandırmanızın doğru yolu
 import { Ionicons } from "@expo/vector-icons";
+
+import styles from "./ToBeDeliveredStyles"; // Stil dosyanızın yolu
 
 const ToBeDelivered = ({ navigation }) => {
   const [orders, setOrders] = useState([]);
@@ -129,22 +127,40 @@ const ToBeDelivered = ({ navigation }) => {
   };
 
   // Her bir sipariş öğesini render eden fonksiyon
+  // ...existing code...
   const renderOrderItem = ({ item }) => (
     <View style={styles.orderCard}>
       <View style={styles.cardContent}>
-        <Text style={styles.customerName}>{item.customerName}</Text>
-        <Text style={styles.customerPhone}>Tel: {item.customerPhone}</Text>
+        <Text style={styles.customerName}>
+          İsim: {item.customerName || "-"}
+        </Text>
+        <Text style={styles.customerPhone}>
+          Telefon: {item.customerPhone || item.customerPhoneNumber || "-"}
+        </Text>
+        <Text style={styles.customerAddress}>
+          Adres: {item.customerAddress || "-"}
+        </Text>
+        <Text style={styles.customerRegion}>
+          Bölge: {item.customerRegionName || item.regionName || "-"}
+        </Text>
         <Text style={styles.orderDate}>
           Sipariş Tarihi:{" "}
           {item.orderDate
             ? new Date(item.orderDate).toLocaleDateString("tr-TR")
-            : "Yok"}
+            : "-"}
         </Text>
         <Text style={styles.itemSummary}>
-          Halılar:{" "}
-          {item.items
-            ? item.items.map((i) => `${i.quantity} adet ${i.type}`).join(", ")
-            : "Yok"}
+          Ürünler:{" "}
+          {item.items && item.items.length > 0
+            ? item.items
+                .map(
+                  (i) =>
+                    `${i.productName || i.type || "-"} (${
+                      i.quantityValue || i.quantity || 0
+                    } ${i.productUnit || ""})`
+                )
+                .join(", ")
+            : "-"}
         </Text>
         <Text style={styles.orderAmount}>
           Toplam: {item.totalAmount ? item.totalAmount.toFixed(2) : "0.00"} TL
@@ -155,7 +171,6 @@ const ToBeDelivered = ({ navigation }) => {
           </Text>
         )}
       </View>
-      {/* Sadece "Teslim Edilecek" durumundaki siparişler için butonu göster */}
       {item.status === "Teslim Edilecek" && (
         <TouchableOpacity
           style={styles.actionButton}
@@ -172,6 +187,7 @@ const ToBeDelivered = ({ navigation }) => {
       )}
     </View>
   );
+  // ...existing code...
 
   if (loading) {
     return (
@@ -201,98 +217,5 @@ const ToBeDelivered = ({ navigation }) => {
     </View>
   );
 };
-
-// Önceki ekranlarla aynı veya benzer stil tanımları
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f0f2f5",
-    paddingTop: 10,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f0f2f5",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#555",
-  },
-  listContent: {
-    paddingHorizontal: 15,
-    paddingBottom: 20,
-  },
-  orderCard: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    flexDirection: "column",
-  },
-  cardContent: {
-    marginBottom: 10,
-  },
-  customerName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  customerPhone: {
-    fontSize: 15,
-    color: "#555",
-    marginTop: 3,
-  },
-  orderDate: {
-    fontSize: 13,
-    color: "#888",
-    marginTop: 5,
-  },
-  itemSummary: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 5,
-    fontStyle: "italic",
-  },
-  orderAmount: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#28A745",
-    marginTop: 5,
-  },
-  remainingAmount: {
-    fontSize: 15,
-    color: "#E74C3C",
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  actionButton: {
-    backgroundColor: "#3498DB",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    alignSelf: "flex-end",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "bold",
-  },
-  noOrdersText: {
-    textAlign: "center",
-    marginTop: 50,
-    fontSize: 16,
-    color: "#888",
-  },
-});
 
 export default ToBeDelivered;

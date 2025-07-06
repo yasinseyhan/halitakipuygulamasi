@@ -55,6 +55,7 @@ const AddOrder = ({ navigation, route }) => {
   useEffect(() => {
     if (route.params?.selectedCustomer) {
       const selectedCust = route.params.selectedCustomer;
+      console.log("Seçilen müşteri:", route.params.selectedCustomer);
       setCustomer(selectedCust); // Seçilen müşteriyi 'customer' state'ine kaydet
 
       // Parametreleri temizle (bu sayede ekran tekrar render edildiğinde eski müşteri tekrar gelmez)
@@ -69,7 +70,13 @@ const AddOrder = ({ navigation, route }) => {
     if (customer) {
       // Eğer bir müşteri objesi varsa, alanları doldur
       // Firebase'den gelen alan adlarına dikkat edin (name, phone, address, regionName)
-      setCustomerName(customer.name || "");
+      setCustomerName(
+        customer.name ||
+          customer.fullName ||
+          customer.adSoyad ||
+          customer.customerName ||
+          ""
+      );
       setCustomerPhone(customer.phone || "");
       setCustomerAddress(customer.address || "");
       setCustomerRegionName(customer.regionName || ""); // Bölge adını da setle
@@ -192,14 +199,32 @@ const AddOrder = ({ navigation, route }) => {
 
       // Bu değişkenlerin hiçbir zaman `undefined` olmamasını sağlıyoruz.
       // `|| ""` ekleyerek, eğer değer `null` veya `undefined` ise boş string olmasını sağlıyoruz.
-      const finalCustomerName = (customer ? customer.name : customerName) || "";
-      const finalCustomerPhone =
-        (customer ? customer.phone : customerPhone) || "";
-      const finalCustomerAddress =
-        (customer ? customer.address : customerAddress) || "";
-      const finalCustomerRegionName =
-        (customer ? customer.regionName : customerRegionName) || "";
+      const finalCustomerName =
+        (customer
+          ? customer.name ||
+            customer.fullName ||
+            customer.adSoyad ||
+            customer.customerName || // <-- Bunu mutlaka ekle!
+            ""
+          : customerName) || "";
 
+      const finalCustomerPhone =
+        (customer
+          ? customer.phone ||
+            customer.customerPhoneNumber ||
+            customer.customerPhone ||
+            ""
+          : customerPhone) || "";
+
+      const finalCustomerAddress =
+        (customer
+          ? customer.address || customer.customerAddress || ""
+          : customerAddress) || "";
+
+      const finalCustomerRegionName =
+        (customer
+          ? customer.regionName || customer.region || ""
+          : customerRegionName) || "";
       if (!customerIdToUse) {
         // Müşteri seçilmemişse ve manuel olarak girildiyse yeni müşteri oluştur
         const newCustomerRef = await addDoc(
@@ -243,7 +268,18 @@ const AddOrder = ({ navigation, route }) => {
         updatedAt: serverTimestamp(),
       });
 
-      Alert.alert("Başarılı", "Sipariş başarıyla kaydedildi!");
+      Alert.alert("Başarılı", "Sipariş başarıyla kaydedildi!", [
+        {
+          text: "Tamam",
+          onPress: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "MainTabs", params: { screen: "HomeTab" } }], // Ana ekranın adını yaz!
+            });
+          },
+        },
+      ]);
+
       // Formu sıfırla
       setCustomer(null);
       // setCustomerName, setCustomerPhone, setCustomerAddress, setCustomerRegionName
@@ -371,34 +407,35 @@ const AddOrder = ({ navigation, route }) => {
             editable={!customer} // Müşteri seçilmişse düzenlenemez
             placeholderTextColor="#888"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Telefon Numarası"
-            value={customerPhone}
-            onChangeText={setCustomerPhone}
-            keyboardType="phone-pad"
-            editable={!customer} // Müşteri seçilmişse düzenlenemez
-            placeholderTextColor="#888"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Adres"
-            value={customerAddress}
-            onChangeText={setCustomerAddress}
-            multiline
-            numberOfLines={3}
-            editable={!customer} // Müşteri seçilmişse düzenlenemez
-            placeholderTextColor="#888"
-          />
-          {/* Bölge adı için TextInput (eğer varsa) */}
-          <TextInput
-            style={styles.input}
-            placeholder="Bölge Adı (Opsiyonel)"
-            value={customerRegionName}
-            onChangeText={setCustomerRegionName}
-            editable={!customer} // Müşteri seçilmişse düzenlenemez
-            placeholderTextColor="#888"
-          />
+          {/* Sadece müşteri seçilmemişse diğer alanları göster */}
+          {/* {!customer && (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Telefon Numarası"
+                value={customerPhone}
+                onChangeText={setCustomerPhone}
+                keyboardType="phone-pad"
+                placeholderTextColor="#888"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Adres"
+                value={customerAddress}
+                onChangeText={setCustomerAddress}
+                multiline
+                numberOfLines={3}
+                placeholderTextColor="#888"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Bölge Adı (Opsiyonel)"
+                value={customerRegionName}
+                onChangeText={setCustomerRegionName}
+                placeholderTextColor="#888"
+              />
+            </>
+          )} */}
           <TouchableOpacity
             style={styles.selectCustomerButton}
             onPress={() =>
@@ -439,7 +476,8 @@ const AddOrder = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ürün Bilgileri</Text>
           {items.map((item, index) => (
-            <View key={index} style={styles.itemRow}>
+            <View key={index} style={styles.itemRowVertical}>
+              {/* Ürün Seçin Picker üstte */}
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={item.productId}
@@ -459,31 +497,33 @@ const AddOrder = ({ navigation, route }) => {
                   ))}
                 </Picker>
               </View>
+              <View style={{ height: 8 }} />
 
-              {renderQuantityInput(item, index)}
-
-              <TextInput
-                style={styles.smallInput}
-                placeholder="Birim Fiyat"
-                value={item.basePrice}
-                onChangeText={(text) =>
-                  handleItemChange(text, index, "basePrice")
-                }
-                keyboardType="numeric"
-                placeholderTextColor="#888"
-                editable={false}
-              />
-              <Text style={styles.lineTotalText}>
-                {(item.lineTotal || 0).toFixed(2)} TL
-              </Text>
-              {items.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => handleRemoveItem(index)}
-                  style={styles.removeButton}
-                >
-                  <Ionicons name="remove-circle" size={24} color="#DC3545" />
-                </TouchableOpacity>
-              )}
+              <View style={styles.row}>
+                {renderQuantityInput(item, index)}
+                <TextInput
+                  style={styles.smallInput}
+                  placeholder="Birim Fiyat"
+                  value={item.basePrice}
+                  onChangeText={(text) =>
+                    handleItemChange(text, index, "basePrice")
+                  }
+                  keyboardType="numeric"
+                  placeholderTextColor="#888"
+                  editable={false}
+                />
+                <Text style={styles.lineTotalText}>
+                  {(item.lineTotal || 0).toFixed(2)} TL
+                </Text>
+                {items.length > 1 && (
+                  <TouchableOpacity
+                    onPress={() => handleRemoveItem(index)}
+                    style={styles.removeButton}
+                  >
+                    <Ionicons name="remove-circle" size={24} color="#DC3545" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           ))}
           <TouchableOpacity

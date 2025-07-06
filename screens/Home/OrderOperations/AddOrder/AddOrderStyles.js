@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 5,
     height: 50,
+    minWidth: 180,
     justifyContent: "center",
   },
   picker: {
@@ -99,15 +100,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 5,
-    padding: 8,
-    marginLeft: 5,
+    padding: 15,
+    marginBottom: 8,
+    marginRight: 5,
     fontSize: 14,
     textAlign: "center",
-    minWidth: 60,
+    minWidth: 50,
   },
   lineTotalText: {
     marginLeft: 10,
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#28A745",
     minWidth: 80,
@@ -122,7 +124,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 10,
     flexDirection: "row",
     justifyContent: "center",
   },
@@ -172,6 +173,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginRight: 5,
+  },
+  itemRowVertical: {
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 10,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
 

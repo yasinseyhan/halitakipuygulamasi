@@ -21,6 +21,7 @@ import {
   getDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { firestore } from "../../../../src/firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -50,6 +51,12 @@ const AddOrder = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(null); // Seçili müşteri objesini tutan state
   const [allProducts, setAllProducts] = useState([]); // Tüm ürünler (halı, koltuk, perde)
+  const [discountAmount, setDiscountAmount] = useState(""); // İndirim tutarı için state
+  const [pickupDate, setPickupDate] = useState(new Date());
+  const [deliveryDate, setDeliveryDate] = useState(new Date());
+  const [showPickupPicker, setShowPickupPicker] = useState(false);
+  const [showDeliveryPicker, setShowDeliveryPicker] = useState(false);
+  // ...existing code...
 
   // SearchCustomer ekranından dönen veriyi işlemek için useEffect kullanın
   useEffect(() => {
@@ -241,8 +248,14 @@ const AddOrder = ({ navigation, route }) => {
         Alert.alert("Bilgi", "Yeni müşteri eklendi.");
       }
 
+      // const parsedPaidAmount = parseFloat(paidAmount) || 0;
+      // const remainingAmount = totalAmount - parsedPaidAmount;
+      // ...existing code...
+      const parsedDiscount = parseFloat(discountAmount) || 0;
       const parsedPaidAmount = parseFloat(paidAmount) || 0;
-      const remainingAmount = totalAmount - parsedPaidAmount;
+      const discountedTotal = Math.max(totalAmount - parsedDiscount, 0);
+      const remainingAmount = discountedTotal - parsedPaidAmount;
+      // ...existing code...
 
       await addDoc(collection(firestore, "orders"), {
         customerId: customerIdToUse,
@@ -250,6 +263,8 @@ const AddOrder = ({ navigation, route }) => {
         customerPhone: finalCustomerPhone, // Firebase'e gönderilecek son değer
         customerAddress: finalCustomerAddress, // Firebase'e gönderilecek son değer
         customerRegionName: finalCustomerRegionName, // Firebase'e gönderilecek son değer
+        pickupDate: pickupDate, // alış tarihi
+        deliveryDate: deliveryDate, // teslim tarihi
         items: items.map((item) => ({
           productId: item.productId,
           productName: item.productName,
@@ -260,6 +275,8 @@ const AddOrder = ({ navigation, route }) => {
           lineTotal: item.lineTotal,
         })),
         totalAmount: totalAmount,
+        discountAmount: parsedDiscount, // indirim kaydı
+        discountedTotal: discountedTotal, // indirimli toplam
         paidAmount: parsedPaidAmount,
         remainingAmount: remainingAmount,
         status: "Teslim Alınacak",
@@ -407,35 +424,47 @@ const AddOrder = ({ navigation, route }) => {
             editable={!customer} // Müşteri seçilmişse düzenlenemez
             placeholderTextColor="#888"
           />
-          {/* Sadece müşteri seçilmemişse diğer alanları göster */}
-          {/* {!customer && (
-            <>
-              <TextInput
-                style={styles.input}
-                placeholder="Telefon Numarası"
-                value={customerPhone}
-                onChangeText={setCustomerPhone}
-                keyboardType="phone-pad"
-                placeholderTextColor="#888"
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tarih Bilgileri</Text>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowPickupPicker(true)}
+            >
+              <Text style={styles.dateButtonText}>
+                Alış Tarihi: {pickupDate.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+            {showPickupPicker && (
+              <DateTimePicker
+                value={pickupDate}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowPickupPicker(false);
+                  if (selectedDate) setPickupDate(selectedDate);
+                }}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Adres"
-                value={customerAddress}
-                onChangeText={setCustomerAddress}
-                multiline
-                numberOfLines={3}
-                placeholderTextColor="#888"
+            )}
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDeliveryPicker(true)}
+            >
+              <Text style={styles.dateButtonText}>
+                Teslim Tarihi: {deliveryDate.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+            {showDeliveryPicker && (
+              <DateTimePicker
+                value={deliveryDate}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDeliveryPicker(false);
+                  if (selectedDate) setDeliveryDate(selectedDate);
+                }}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Bölge Adı (Opsiyonel)"
-                value={customerRegionName}
-                onChangeText={setCustomerRegionName}
-                placeholderTextColor="#888"
-              />
-            </>
-          )} */}
+            )}
+          </View>
           <TouchableOpacity
             style={styles.selectCustomerButton}
             onPress={() =>
@@ -548,6 +577,22 @@ const AddOrder = ({ navigation, route }) => {
           </Text>
           <TextInput
             style={styles.input}
+            placeholder="İndirim Tutarı"
+            value={discountAmount}
+            onChangeText={setDiscountAmount}
+            keyboardType="numeric"
+            placeholderTextColor="#888"
+          />
+          <Text style={styles.totalAmountText}>
+            İndirimli Tutar:
+            {Math.max(
+              totalAmount - (parseFloat(discountAmount) || 0),
+              0
+            ).toFixed(2)}
+            TL
+          </Text>
+          <TextInput
+            style={styles.input}
             placeholder="Ödenen Tutar"
             value={paidAmount}
             onChangeText={setPaidAmount}
@@ -555,7 +600,7 @@ const AddOrder = ({ navigation, route }) => {
             placeholderTextColor="#888"
           />
           <Text style={styles.remainingAmountText}>
-            Kalan Tutar:{" "}
+            Kalan Tutar:
             {(totalAmount - (parseFloat(paidAmount) || 0)).toFixed(2)} TL
           </Text>
         </View>

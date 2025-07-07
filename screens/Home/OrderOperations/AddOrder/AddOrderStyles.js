@@ -184,6 +184,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  dateButton: {
+    backgroundColor: "#eee",
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 5,
+  },
+  dateButtonText: {
+    color: "#333",
+    fontSize: 16,
+  },
 });
 
 export default styles;

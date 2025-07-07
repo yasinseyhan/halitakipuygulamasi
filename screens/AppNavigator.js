@@ -279,12 +279,18 @@ const AppNavigator = () => {
           component={LoginScreen}
           options={{ headerShown: false }}
         />
-        {/* RAPORLAR VE DESTEK EKRANLARI */}
+        {/* RAPORLAR EKRANLARI */}
         <Stack.Screen
-          name="Reports"
+          name="Reports" // Bu isimle sayfaya navigate edeceksiniz
           component={Reports}
-          options={{ headerShown: false }}
+          options={{
+            title: "Finansal Raporlar",
+            headerStyle: { backgroundColor: "#2C3E50" },
+            headerTintColor: "#fff",
+            headerTitleStyle: { fontWeight: "bold" },
+          }}
         />
+        {/* DESTEK EKRANLARI */}
         <Stack.Screen
           name="Support"
           component={Support}

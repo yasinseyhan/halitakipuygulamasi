@@ -254,17 +254,17 @@ const AddOrder = ({ navigation, route }) => {
       const parsedDiscount = parseFloat(discountAmount) || 0;
       const parsedPaidAmount = parseFloat(paidAmount) || 0;
       const discountedTotal = Math.max(totalAmount - parsedDiscount, 0);
-      const remainingAmount = discountedTotal - parsedPaidAmount;
+      const remainingAmount = discountedTotal - parsedPaidAmount; // Sipariş verilerini Firestore'a kaydetme
       // ...existing code...
 
-      await addDoc(collection(firestore, "orders"), {
+      const orderRef = await addDoc(collection(firestore, "orders"), {
         customerId: customerIdToUse,
-        customerName: finalCustomerName, // Firebase'e gönderilecek son değer
-        customerPhone: finalCustomerPhone, // Firebase'e gönderilecek son değer
-        customerAddress: finalCustomerAddress, // Firebase'e gönderilecek son değer
-        customerRegionName: finalCustomerRegionName, // Firebase'e gönderilecek son değer
-        pickupDate: pickupDate, // alış tarihi
-        deliveryDate: deliveryDate, // teslim tarihi
+        customerName: finalCustomerName,
+        customerPhone: finalCustomerPhone,
+        customerAddress: finalCustomerAddress,
+        customerRegionName: finalCustomerRegionName,
+        pickupDate: pickupDate,
+        deliveryDate: deliveryDate,
         items: items.map((item) => ({
           productId: item.productId,
           productName: item.productName,
@@ -275,24 +275,68 @@ const AddOrder = ({ navigation, route }) => {
           lineTotal: item.lineTotal,
         })),
         totalAmount: totalAmount,
-        discountAmount: parsedDiscount, // indirim kaydı
-        discountedTotal: discountedTotal, // indirimli toplam
+        discountAmount: parsedDiscount,
+        discountedTotal: discountedTotal, // İndirimli toplam tutar (Gelir olarak kullanacağız)
         paidAmount: parsedPaidAmount,
         remainingAmount: remainingAmount,
-        status: "Teslim Alınacak",
+        status: "Teslim Alınacak", // Siparişin başlangıç durumu
         orderDate: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
+      // await addDoc(collection(firestore, "orders"), {
+      //   customerId: customerIdToUse,
+      //   customerName: finalCustomerName, // Firebase'e gönderilecek son değer
+      //   customerPhone: finalCustomerPhone, // Firebase'e gönderilecek son değer
+      //   customerAddress: finalCustomerAddress, // Firebase'e gönderilecek son değer
+      //   customerRegionName: finalCustomerRegionName, // Firebase'e gönderilecek son değer
+      //   pickupDate: pickupDate, // alış tarihi
+      //   deliveryDate: deliveryDate, // teslim tarihi
+      //   items: items.map((item) => ({
+      //     productId: item.productId,
+      //     productName: item.productName,
+      //     productCategory: item.productCategory,
+      //     productUnit: item.productUnit,
+      //     basePrice: parseFloat(item.basePrice) || 0,
+      //     quantityValue: parseFloat(item.quantityValue) || 0,
+      //     lineTotal: item.lineTotal,
+      //   })),
+      //   totalAmount: totalAmount,
+      //   discountAmount: parsedDiscount, // indirim kaydı
+      //   discountedTotal: discountedTotal, // indirimli toplam
+      //   paidAmount: parsedPaidAmount,
+      //   remainingAmount: remainingAmount,
+      //   status: "Teslim Alınacak",
+      //   orderDate: serverTimestamp(),
+      //   createdAt: serverTimestamp(),
+      //   updatedAt: serverTimestamp(),
+      // });
+
       Alert.alert("Başarılı", "Sipariş başarıyla kaydedildi!", [
         {
           text: "Tamam",
           onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "MainTabs", params: { screen: "HomeTab" } }], // Ana ekranın adını yaz!
-            });
+            // Sipariş kaydedildikten sonra CashBank ekranına yönlendirme
+            // CashBank ekranı ana Stack'te olduğu için direkt ismini kullanıyoruz.
+            navigation.navigate("CashBank", { orderId: orderRef.id }); // Burası önemli!
+
+            // Formu sıfırla
+            setCustomer(null);
+            setItems([
+              {
+                productId: "",
+                productName: "",
+                productCategory: "",
+                productUnit: "",
+                basePrice: "",
+                quantityValue: "",
+                lineTotal: 0,
+              },
+            ]);
+            setTotalAmount(0);
+            setPaidAmount("");
+            setDiscountAmount("");
           },
         },
       ]);

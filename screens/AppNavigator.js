@@ -169,12 +169,13 @@ const AppNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="AddIncome"
+          name="AddIncome" // Bu isimle sayfaya navigate edeceksiniz
           component={AddIncome}
           options={{
-            title: "Gelir Ekle",
+            title: "Yeni Gelir Ekle",
             headerStyle: { backgroundColor: "#2C3E50" },
             headerTintColor: "#fff",
+            headerTitleStyle: { fontWeight: "bold" },
           }}
         />
         <Stack.Screen

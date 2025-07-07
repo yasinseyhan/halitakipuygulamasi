@@ -58,9 +58,20 @@ const SearchCustomer = ({ navigation, route }) => {
     const lowerCaseQuery = searchQuery.toLowerCase();
     const filtered = customers.filter(
       (customer) =>
-        customer.customerName.toLowerCase().includes(lowerCaseQuery) || // 'name' yerine 'customerName' kullandığınızı varsaydım
-        customer.customerPhoneNumber.includes(searchQuery) ||
-        (customer.customerAddress &&
+        // 'customerName' yerine 'firstName' ve 'lastName' kullanıldığını varsaydım
+        // Eğer müşterilerinizi 'customerName' olarak kaydediyorsanız, burayı customer.customerName olarak bırakın.
+        (customer.firstName &&
+          customer.firstName.toLowerCase().includes(lowerCaseQuery)) ||
+        (customer.lastName &&
+          customer.lastName.toLowerCase().includes(lowerCaseQuery)) ||
+        (customer.customerName && // Eğer hem firstName/lastName hem de customerName kullanılıyorsa
+          customer.customerName.toLowerCase().includes(lowerCaseQuery)) ||
+        (customer.phone && customer.phone.includes(searchQuery)) || // 'customerPhoneNumber' yerine 'phone' kullandığınızı varsaydım
+        (customer.customerPhoneNumber && // Eğer hem phone hem de customerPhoneNumber kullanılıyorsa
+          customer.customerPhoneNumber.includes(searchQuery)) ||
+        (customer.address &&
+          customer.address.toLowerCase().includes(lowerCaseQuery)) ||
+        (customer.customerAddress && // Eğer hem address hem de customerAddress kullanılıyorsa
           customer.customerAddress.toLowerCase().includes(lowerCaseQuery))
     );
     setFilteredCustomers(filtered);
@@ -99,18 +110,17 @@ const SearchCustomer = ({ navigation, route }) => {
         selectedCustomer: customer,
       });
     } else {
-      // Normal modda ise müşteri detay ekranına git (bu ekranı daha sonra oluşturacağız)
-      // navigation.navigate('CustomerDetail', { customerId: customer.id });
-      Alert.alert(
-        "Müşteri Detayı",
-        `Müşteri Adı: ${customer.customerName}\nTelefon: ${
-          customer.customerPhoneNumber
-        }\nAdres: ${customer.customerAddress}\nBölge: ${
-          customer.regionName || "Belirtilmemiş"
-        }`
-      );
-      // Şimdilik Alert kullanıyorum, daha sonra CustomerDetail ekranına geçiş yapabiliriz.
+      // Normal modda ise müşteri detay ekranına git
+      // `customer` objesinin tamamını CustomerDetailScreen'e gönderiyoruz
+      navigation.navigate("CustomerDetail", { customer: customer });
     }
+  };
+
+  // Müşteri Düzenleme Fonksiyonu (İleride kullanmak üzere)
+  const handleEditCustomer = (customer) => {
+    // `AddCustomer` ekranınızın düzenleme modunu desteklediğini varsayıyoruz.
+    // Eğer düzenleme için ayrı bir ekranınız varsa, ona yönlendirmelisiniz.
+    navigation.navigate("AddCustomer", { customer: customer, isEditing: true });
   };
 
   const renderItem = ({ item }) => (
@@ -119,34 +129,65 @@ const SearchCustomer = ({ navigation, route }) => {
       onPress={() => handleCustomerPress(item)} // Tıklanınca müşteriyi seç veya detayına git
     >
       <View style={styles.customerInfo}>
-        <Text style={styles.customerName}>{item.customerName}</Text>
-        <Text style={styles.customerPhone}>
-          Tel: {item.customerPhoneNumber}
+        <Text style={styles.customerName}>
+          {item.firstName || item.customerName} {item.lastName}
         </Text>
-        {item.customerAddress && (
-          <Text style={styles.customerAddress}>
-            Adres: {item.customerAddress}
+        <Text style={styles.customerPhone}>
+          Tel: {item.phone || item.customerPhoneNumber}
+        </Text>
+        {item.address && (
+          <Text style={styles.customerAddress}>Adres: {item.address}</Text>
+        )}
+        {item.customerAddress &&
+          !item.address && ( // Hem address hem de customerAddress varsa çakışma olmaması için
+            <Text style={styles.customerAddress}>
+              Adres: {item.customerAddress}
+            </Text>
+          )}
+        {item.customerRegionName && (
+          <Text style={styles.customerRegion}>
+            Bölge: {item.customerRegionName}
           </Text>
         )}
-        {item.regionName && (
-          <Text style={styles.customerRegion}>Bölge: {item.regionName}</Text>
-        )}
+        {item.regionName &&
+          !item.customerRegionName && ( // Hem customerRegionName hem de regionName varsa çakışma olmaması için
+            <Text style={styles.customerRegion}>Bölge: {item.regionName}</Text>
+          )}
       </View>
       <View style={styles.actions}>
-        {/* Düzenleme butonu (isteğe bağlı, sonra eklenebilir) */}
-        {/* <TouchableOpacity onPress={() => navigation.navigate('EditCustomer', { customerId: item.id })}>
-          <Ionicons name="create-outline" size={24} color="#3498DB" style={styles.actionIcon} />
-        </TouchableOpacity> */}
-        <TouchableOpacity
-          onPress={() => handleDeleteCustomer(item.id, item.customerName)}
-        >
-          <Ionicons
-            name="trash-outline"
-            size={24}
-            color="#E74C3C"
-            style={styles.actionIcon}
-          />
-        </TouchableOpacity>
+        {/* Düzenleme butonu: selectMode açık değilse göster */}
+        {!selectMode && (
+          <TouchableOpacity
+            onPress={() => handleEditCustomer(item)} // Düzenleme fonksiyonunu çağır
+            style={styles.actionButton}
+          >
+            <Ionicons
+              name="pencil-outline"
+              size={24}
+              color="#3498DB"
+              style={styles.actionIcon}
+            />
+          </TouchableOpacity>
+        )}
+        {/* Silme butonu: selectMode açık değilse göster */}
+        {!selectMode && (
+          <TouchableOpacity
+            onPress={() =>
+              handleDeleteCustomer(
+                item.id,
+                item.customerName || `${item.firstName} ${item.lastName}`
+              )
+            }
+            style={styles.actionButton}
+          >
+            <Ionicons
+              name="trash-outline"
+              size={24}
+              color="#E74C3C"
+              style={styles.actionIcon}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );

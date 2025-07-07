@@ -8,7 +8,6 @@ import SignUpScreen from "./SignUpScreen/SignUpScreen";
 import LoginScreen from "./Login/Login";
 
 // ANA EKRANLAR
-
 import HomeScreen from "./Home/HomeScreen";
 import Received from "./Home/CarpetOperations/Received/Received";
 import ToBeReceived from "./Home/CarpetOperations/ToBeReceived/ToBeReceived";
@@ -40,6 +39,10 @@ import MessageTemplates from "./Management/Definitions/MessageTemplates/MessageT
 import Reports from "./Reports/Reports";
 import Support from "./Support/Support";
 import MainTabs from "../components/MainTabs";
+
+// DİĞER EKRANLAR
+import CustomerDetailScreen from "./Home/CustomerOperations/CustomerDetailScreen/CustomerDetailScreen";
+import OrderDetailScreen from "./Home/OrderOperations/OrderDeatilScreen/OrderDetailScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -155,6 +158,25 @@ const AppNavigator = () => {
           component={SearchCustomer}
           options={{
             title: "Müşteri Listesi",
+            headerStyle: { backgroundColor: "#2C3E50" },
+            headerTintColor: "#fff",
+          }}
+        />
+        {/* Yeni Eklenen Müşteri Detay Ekranı */}
+        <Stack.Screen
+          name="CustomerDetail"
+          component={CustomerDetailScreen}
+          options={{
+            title: "Müşteri Detayı",
+            headerStyle: { backgroundColor: "#2C3E50" },
+            headerTintColor: "#fff",
+          }}
+        />
+        <Stack.Screen
+          name="OrderDetail"
+          component={OrderDetailScreen}
+          options={{
+            title: "Sipariş Detayı",
             headerStyle: { backgroundColor: "#2C3E50" },
             headerTintColor: "#fff",
           }}

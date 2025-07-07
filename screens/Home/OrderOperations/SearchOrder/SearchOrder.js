@@ -37,12 +37,12 @@ const SearchOrder = ({ navigation }) => {
           id: doc.id,
           ...doc.data(),
           // Firestore Timestamp objelerini Date objelerine çevir (eğer varsa)
-          orderDate: doc.data().orderDate?.toDate
-            ? doc.data().orderDate.toDate()
-            : doc.data().orderDate,
-          deliveryDate: doc.data().deliveryDate?.toDate
-            ? doc.data().deliveryDate.toDate()
-            : doc.data().deliveryDate,
+          // Bu çevrimi OrderDetailScreen'de de yapıyoruz, burada yapmamız şart değil ama tutarlı olmak adına kalabilir.
+          // Ancak OrderDetailScreen'e Timestamp objesi olarak göndermek, orada dönüşüm yapma esnekliği sağlar.
+          // Şimdilik Timestamp objesi olarak gönderip OrderDetailScreen'de handle edelim.
+          // Bu yüzden aşağıdaki .toDate() çevrimlerini kaldırabiliriz.
+          // orderDate: doc.data().orderDate?.toDate ? doc.data().orderDate.toDate() : doc.data().orderDate,
+          // deliveryDate: doc.data().deliveryDate?.toDate ? doc.data().deliveryDate.toDate() : doc.data().deliveryDate,
         }));
         setOrders(orderList);
         setLoading(false);
@@ -73,10 +73,12 @@ const SearchOrder = ({ navigation }) => {
     if (lowerCaseQuery) {
       currentFilteredOrders = currentFilteredOrders.filter(
         (order) =>
-          order.customerName.toLowerCase().includes(lowerCaseQuery) ||
-          order.customerPhone.includes(lowerCaseQuery) ||
-          order.notes.toLowerCase().includes(lowerCaseQuery) ||
-          order.id.toLowerCase().includes(lowerCaseQuery) // Sipariş ID'sine göre de arama
+          (order.customerName &&
+            order.customerName.toLowerCase().includes(lowerCaseQuery)) ||
+          (order.customerPhone &&
+            order.customerPhone.includes(lowerCaseQuery)) ||
+          (order.notes && order.notes.toLowerCase().includes(lowerCaseQuery)) || // Notlar alanı yoksa hata vermez
+          (order.id && order.id.toLowerCase().includes(lowerCaseQuery)) // Sipariş ID'sine göre de arama
       );
     }
 
@@ -84,28 +86,8 @@ const SearchOrder = ({ navigation }) => {
   }, [searchQuery, selectedStatus, orders]); // Bu bağımlılıklar değiştiğinde filtrelemeyi tekrar yap
 
   const handleOrderPress = (order) => {
-    // Sipariş detay ekranına yönlendirme
-    // 'OrderDetail' ekranını daha sonra oluşturacağız.
-    // Şimdilik Alert ile bilgileri gösterelim.
-    Alert.alert(
-      "Sipariş Detayı",
-      `Müşteri: ${order.customerName}\nTelefon: ${
-        order.customerPhone
-      }\nDurum: ${order.status}\nToplam: ${order.totalAmount?.toFixed(2)} TL` +
-        `\nKalan: ${order.remainingAmount?.toFixed(2)} TL` +
-        `\nNotlar: ${order.notes || "Yok"}` +
-        `\nSipariş Tarihi: ${
-          order.orderDate
-            ? new Date(order.orderDate).toLocaleDateString("tr-TR")
-            : "N/A"
-        }` +
-        `\nTeslim Tarihi: ${
-          order.deliveryDate
-            ? new Date(order.deliveryDate).toLocaleDateString("tr-TR")
-            : "N/A"
-        }`
-    );
-    // navigation.navigate('OrderDetail', { orderId: order.id });
+    // BURADAKİ ALERT KISMI KALDIRILDI VE DİREKT OrderDetail ekranına yönlendirildi
+    navigation.navigate("OrderDetail", { order: order });
   };
 
   const renderOrderItem = ({ item }) => (
@@ -121,21 +103,23 @@ const SearchOrder = ({ navigation }) => {
       <Text style={styles.orderAmount}>
         Toplam: {item.totalAmount ? item.totalAmount.toFixed(2) : "0.00"} TL
       </Text>
+      {/* remainingAmount'ın sadece pozitif değerler için gösterilmesi mantıklı */}
       {item.remainingAmount > 0 && (
         <Text style={styles.remainingAmount}>
           Kalan: {item.remainingAmount.toFixed(2)} TL
         </Text>
       )}
+      {/* Tarihleri OrderDetailScreen'deki formatDate fonksiyonu gibi formatlıyoruz */}
       <Text style={styles.orderDate}>
         Sipariş Tarihi:{" "}
         {item.orderDate
-          ? new Date(item.orderDate).toLocaleDateString("tr-TR")
+          ? item.orderDate.toDate().toLocaleDateString("tr-TR") // Timestamp'ten Date'e çevirip formatla
           : "Tarih Yok"}
       </Text>
       <Text style={styles.deliveryDate}>
         Teslim Tarihi:{" "}
         {item.deliveryDate
-          ? new Date(item.deliveryDate).toLocaleDateString("tr-TR")
+          ? item.deliveryDate.toDate().toLocaleDateString("tr-TR") // Timestamp'ten Date'e çevirip formatla
           : "Tarih Yok"}
       </Text>
     </TouchableOpacity>
@@ -202,8 +186,5 @@ const SearchOrder = ({ navigation }) => {
     </View>
   );
 };
-
-// Bu stil dosyasını ayrı bir dosyaya taşıyabilirsiniz: SearchOrderStyles.js
-// Veya şimdilik buraya ekleyebilirsiniz.
 
 export default SearchOrder;

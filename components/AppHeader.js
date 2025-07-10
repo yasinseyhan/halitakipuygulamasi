@@ -40,18 +40,3 @@ const styles = StyleSheet.create({
 });
 
 export default AppHeader;
-
-// import React from "react";
-// import { View, Text } from "react-native";
-// import styles from "../screens/Home/HomeScreen.Styles";
-
-// const AppHeader = ({ title }) => (
-//   <View style={styles.header}>
-//     <View style={styles.logoCircle}>
-//       <Text style={styles.logoText}>LOGO</Text>
-//     </View>
-//     <Text style={styles.headerTitle}>{title || "DEMO HALI YIKAMA"}</Text>
-//   </View>
-// );
-
-// export default AppHeader;

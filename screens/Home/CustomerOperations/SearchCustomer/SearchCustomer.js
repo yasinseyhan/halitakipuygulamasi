@@ -1,4 +1,3 @@
-// src/screens/Home/CustomerOperations/SearchCustomer/SearchCustomer.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -19,20 +18,22 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native"; // useNavigation import edildi
 
-import styles from "./SearchCustomerStyles";
+import styles from "./SearchCustomerStyles"; // Stil dosyanızın yolu
 
-const SearchCustomer = ({ navigation, route }) => {
+const SearchCustomer = ({ route }) => {
+  // navigation prop'u yerine useNavigation kullanıyoruz
+  const navigation = useNavigation();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState([]);
 
-  // `selectMode` parametresi, bu ekranın bir müşteri seçmek için mi açıldığını belirler.
-  // Örneğin, AddOrder ekranından buraya "selectMode: true" ile geleceğiz.
   const selectMode = route.params?.selectMode || false;
 
   useEffect(() => {
+    // onSnapshot sayesinde veritabanındaki değişiklikler anında yansır
     const unsubscribe = onSnapshot(
       query(collection(firestore, "customers"), orderBy("createdAt", "desc")),
       (snapshot) => {
@@ -41,7 +42,7 @@ const SearchCustomer = ({ navigation, route }) => {
           ...doc.data(),
         }));
         setCustomers(customerList);
-        setFilteredCustomers(customerList);
+        setFilteredCustomers(customerList); // Başlangıçta tüm müşteriler filtrelenmiş olarak ayarlanır
         setLoading(false);
       },
       (error) => {
@@ -51,36 +52,27 @@ const SearchCustomer = ({ navigation, route }) => {
       }
     );
 
-    return () => unsubscribe();
-  }, []);
+    return () => unsubscribe(); // Cleanup fonksiyonu
+  }, []); // Sadece bir kez mount edildiğinde çalışır
 
   useEffect(() => {
     const lowerCaseQuery = searchQuery.toLowerCase();
     const filtered = customers.filter(
       (customer) =>
-        // 'customerName' yerine 'firstName' ve 'lastName' kullanıldığını varsaydım
-        // Eğer müşterilerinizi 'customerName' olarak kaydediyorsanız, burayı customer.customerName olarak bırakın.
-        (customer.firstName &&
-          customer.firstName.toLowerCase().includes(lowerCaseQuery)) ||
-        (customer.lastName &&
-          customer.lastName.toLowerCase().includes(lowerCaseQuery)) ||
-        (customer.customerName && // Eğer hem firstName/lastName hem de customerName kullanılıyorsa
+        (customer.customerName &&
           customer.customerName.toLowerCase().includes(lowerCaseQuery)) ||
-        (customer.phone && customer.phone.includes(searchQuery)) || // 'customerPhoneNumber' yerine 'phone' kullandığınızı varsaydım
-        (customer.customerPhoneNumber && // Eğer hem phone hem de customerPhoneNumber kullanılıyorsa
+        (customer.customerPhoneNumber &&
           customer.customerPhoneNumber.includes(searchQuery)) ||
-        (customer.address &&
-          customer.address.toLowerCase().includes(lowerCaseQuery)) ||
-        (customer.customerAddress && // Eğer hem address hem de customerAddress kullanılıyorsa
+        (customer.customerAddress &&
           customer.customerAddress.toLowerCase().includes(lowerCaseQuery))
     );
     setFilteredCustomers(filtered);
   }, [searchQuery, customers]);
 
-  const handleDeleteCustomer = async (customerId, customerName) => {
+  const handleDeleteCustomer = async (customerId, customerDisplayName) => {
     Alert.alert(
       "Müşteriyi Sil",
-      `"${customerName}" müşterisini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`,
+      `"${customerDisplayName}" müşterisini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`,
       [
         {
           text: "İptal",
@@ -111,15 +103,14 @@ const SearchCustomer = ({ navigation, route }) => {
       });
     } else {
       // Normal modda ise müşteri detay ekranına git
-      // `customer` objesinin tamamını CustomerDetailScreen'e gönderiyoruz
       navigation.navigate("CustomerDetail", { customer: customer });
     }
   };
 
-  // Müşteri Düzenleme Fonksiyonu (İleride kullanmak üzere)
+  // Müşteri Düzenleme Fonksiyonu
   const handleEditCustomer = (customer) => {
-    // `AddCustomer` ekranınızın düzenleme modunu desteklediğini varsayıyoruz.
-    // Eğer düzenleme için ayrı bir ekranınız varsa, ona yönlendirmelisiniz.
+    // `AddCustomer` ekranına, müşterinin tüm objesini ve isEditing bayrağını gönderiyoruz.
+    // `AddCustomer` ekranı bu objeden `id`'yi ve diğer bilgileri alacak.
     navigation.navigate("AddCustomer", { customer: customer, isEditing: true });
   };
 
@@ -129,30 +120,18 @@ const SearchCustomer = ({ navigation, route }) => {
       onPress={() => handleCustomerPress(item)} // Tıklanınca müşteriyi seç veya detayına git
     >
       <View style={styles.customerInfo}>
-        <Text style={styles.customerName}>
-          {item.firstName || item.customerName} {item.lastName}
-        </Text>
+        <Text style={styles.customerName}>{item.customerName}</Text>
         <Text style={styles.customerPhone}>
-          Tel: {item.phone || item.customerPhoneNumber}
+          Tel: {item.customerPhoneNumber}
         </Text>
-        {item.address && (
-          <Text style={styles.customerAddress}>Adres: {item.address}</Text>
-        )}
-        {item.customerAddress &&
-          !item.address && ( // Hem address hem de customerAddress varsa çakışma olmaması için
-            <Text style={styles.customerAddress}>
-              Adres: {item.customerAddress}
-            </Text>
-          )}
-        {item.customerRegionName && (
-          <Text style={styles.customerRegion}>
-            Bölge: {item.customerRegionName}
+        {item.customerAddress && (
+          <Text style={styles.customerAddress}>
+            Adres: {item.customerAddress}
           </Text>
         )}
-        {item.regionName &&
-          !item.customerRegionName && ( // Hem customerRegionName hem de regionName varsa çakışma olmaması için
-            <Text style={styles.customerRegion}>Bölge: {item.regionName}</Text>
-          )}
+        {item.regionName && ( // Firestore'da 'regionName' olarak kaydedilen bölge adını göster
+          <Text style={styles.customerRegion}>Bölge: {item.regionName}</Text>
+        )}
       </View>
       <View style={styles.actions}>
         {/* Düzenleme butonu: selectMode açık değilse göster */}
@@ -172,12 +151,7 @@ const SearchCustomer = ({ navigation, route }) => {
         {/* Silme butonu: selectMode açık değilse göster */}
         {!selectMode && (
           <TouchableOpacity
-            onPress={() =>
-              handleDeleteCustomer(
-                item.id,
-                item.customerName || `${item.firstName} ${item.lastName}`
-              )
-            }
+            onPress={() => handleDeleteCustomer(item.id, item.customerName)} // customerName'i gönder
             style={styles.actionButton}
           >
             <Ionicons

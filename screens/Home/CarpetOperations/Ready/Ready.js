@@ -19,13 +19,16 @@ import {
   doc,
   updateDoc,
   serverTimestamp,
+  Timestamp, // Firestore Timestamp'i import etmeyi unutmayın!
 } from "firebase/firestore";
 import { firestore } from "../../../../src/firebaseConfig"; // Firestore yapılandırmanızın doğru yolu
 import { Ionicons } from "@expo/vector-icons";
+import DatePickerHeader from "../../../../components/DatePickerHeader"; // DatePickerHeader'ın doğru yolu
 
 const Ready = ({ navigation }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date()); // Varsayılan olarak bugünün tarihi
 
   // Sipariş Durumları Dizisi - Geçişler için referansımız
   const orderStatuses = [
@@ -39,11 +42,21 @@ const Ready = ({ navigation }) => {
   ];
 
   useEffect(() => {
-    // Sadece "Hazır" durumundaki siparişleri dinle
+    setLoading(true);
+    // Seçilen günün başlangıcı ve bitişi için Timestamp objeleri oluşturma
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const q = query(
       collection(firestore, "orders"),
       where("status", "==", "Hazır"), // Ana filtreleme burada!
-      orderBy("createdAt", "asc") // En eski siparişler üstte görünsün
+      // pickupDate'e göre filtreleme yapıyoruz
+      where("pickupDate", ">=", Timestamp.fromDate(startOfDay)),
+      where("pickupDate", "<=", Timestamp.fromDate(endOfDay)),
+      orderBy("pickupDate", "asc"), // Alış tarihine göre sırala
+      orderBy("createdAt", "asc") // Aynı alış tarihine sahip siparişleri oluşturma tarihine göre sırala
     );
 
     const unsubscribe = onSnapshot(
@@ -52,9 +65,13 @@ const Ready = ({ navigation }) => {
         const orderList = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
+          // Firestore Timestamp'leri Date objelerine çevir
           orderDate: doc.data().orderDate?.toDate
             ? doc.data().orderDate.toDate()
             : doc.data().orderDate,
+          pickupDate: doc.data().pickupDate?.toDate
+            ? doc.data().pickupDate.toDate()
+            : doc.data().pickupDate,
           deliveryDate: doc.data().deliveryDate?.toDate
             ? doc.data().deliveryDate.toDate()
             : doc.data().deliveryDate,
@@ -70,7 +87,7 @@ const Ready = ({ navigation }) => {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [selectedDate]); // selectedDate değiştiğinde useEffect tekrar çalışsın
 
   // Siparişin durumunu bir sonraki adıma güncelleme fonksiyonu
   const updateOrderStatus = async (orderId, currentStatus) => {
@@ -100,6 +117,7 @@ const Ready = ({ navigation }) => {
                 "Başarılı",
                 `Sipariş durumu "${nextStatus}" olarak güncellendi.`
               );
+              // Durumu değişen sipariş, otomatik olarak bu listeden kaybolacaktır
             } catch (error) {
               console.error(
                 "Sipariş durumu güncellenirken hata oluştu: ",
@@ -118,24 +136,49 @@ const Ready = ({ navigation }) => {
 
   // Her bir sipariş öğesini render eden fonksiyon
   const renderOrderItem = ({ item }) => (
-    <View style={styles.orderCard}>
+    <TouchableOpacity
+      style={styles.orderCard}
+      onPress={() => navigation.navigate("OrderDetail", { order: item })} // Detay sayfasına yönlendirme örneği
+    >
       <View style={styles.cardContent}>
         <Text style={styles.customerName}>{item.customerName}</Text>
         <Text style={styles.customerPhone}>Tel: {item.customerPhone}</Text>
+        <Text style={styles.customerAddress}>
+          Adres: {item.customerAddress}
+        </Text>
         <Text style={styles.orderDate}>
-          Sipariş Tarihi:{" "}
-          {item.orderDate
-            ? new Date(item.orderDate).toLocaleDateString("tr-TR")
-            : "Yok"}
+          Alış Tarihi:
+          {item.pickupDate
+            ? new Date(item.pickupDate).toLocaleDateString("tr-TR")
+            : "Belirtilmemiş"}
+        </Text>
+        <Text style={styles.deliveryDate}>
+          Teslim Tarihi:
+          {item.deliveryDate
+            ? new Date(item.deliveryDate).toLocaleDateString("tr-TR")
+            : "Belirtilmemiş"}
         </Text>
         <Text style={styles.itemSummary}>
-          Halılar:{" "}
+          Ürünler:
           {item.items
-            ? item.items.map((i) => `${i.quantity} adet ${i.type}`).join(", ")
+            ? item.items
+                .map(
+                  (i) => `${i.quantityValue} ${i.productUnit} ${i.productName}`
+                )
+                .join(", ")
             : "Yok"}
         </Text>
         <Text style={styles.orderAmount}>
-          Toplam: {item.totalAmount ? item.totalAmount.toFixed(2) : "0.00"} TL
+          Toplam Tutar:
+          {item.totalAmount ? item.totalAmount.toFixed(2) : "0.00"} TL
+        </Text>
+        {item.discountAmount > 0 && (
+          <Text style={styles.orderAmount}>
+            İndirim: {item.discountAmount.toFixed(2)} TL
+          </Text>
+        )}
+        <Text style={styles.orderAmount}>
+          Ödenen: {item.paidAmount ? item.paidAmount.toFixed(2) : "0.00"} TL
         </Text>
         {item.remainingAmount > 0 && (
           <Text style={styles.remainingAmount}>
@@ -143,7 +186,6 @@ const Ready = ({ navigation }) => {
           </Text>
         )}
       </View>
-      {/* Sadece "Hazır" durumundaki siparişler için butonu göster */}
       {item.status === "Hazır" && (
         <TouchableOpacity
           style={styles.actionButton}
@@ -151,14 +193,14 @@ const Ready = ({ navigation }) => {
         >
           <Text style={styles.actionButtonText}>Teslimata Çıkar</Text>
           <Ionicons
-            name="car-outline"
+            name="car-outline" // Araba ikonu uygun
             size={20}
             color="#fff"
             style={{ marginLeft: 5 }}
           />
         </TouchableOpacity>
       )}
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -172,9 +214,14 @@ const Ready = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <DatePickerHeader
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+      />
       {orders.length === 0 ? (
         <Text style={styles.noOrdersText}>
-          Henüz teslimata hazır sipariş bulunmamaktadır.
+          {selectedDate.toLocaleDateString("tr-TR")} tarihi için teslimata hazır
+          sipariş bulunmamaktadır.
         </Text>
       ) : (
         <FlatList
@@ -188,18 +235,18 @@ const Ready = ({ navigation }) => {
   );
 };
 
-// Önceki ekranlarla aynı veya benzer stil tanımları
+// Ortak veya benzer stilleri kullanmaya devam edelim
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f2f5",
+    backgroundColor: "#F5F7FA", // Daha açık bir arka plan
     paddingTop: 10,
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f0f2f5",
+    backgroundColor: "#F5F7FA",
   },
   loadingText: {
     marginTop: 10,
@@ -207,12 +254,12 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   listContent: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 10, // Kenar boşlukları
     paddingBottom: 20,
   },
   orderCard: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
     padding: 15,
     marginBottom: 10,
     shadowColor: "#000",
@@ -220,7 +267,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    flexDirection: "column",
   },
   cardContent: {
     marginBottom: 10,
@@ -228,56 +274,71 @@ const styles = StyleSheet.create({
   customerName: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color: "#2C3E50",
+    marginBottom: 5,
   },
   customerPhone: {
     fontSize: 15,
     color: "#555",
-    marginTop: 3,
+    marginBottom: 3,
+  },
+  customerAddress: {
+    fontSize: 14,
+    color: "#777",
+    marginBottom: 3,
   },
   orderDate: {
-    fontSize: 13,
-    color: "#888",
-    marginTop: 5,
+    // Alış tarihi için
+    fontSize: 14,
+    color: "#777",
+    marginBottom: 3,
+  },
+  deliveryDate: {
+    // Teslim tarihi için (bu ekranda çok vurgulu olmasına gerek yok)
+    fontSize: 14,
+    color: "#777", // Daha nötr bir renk
+    fontWeight: "normal",
+    marginBottom: 5,
   },
   itemSummary: {
     fontSize: 14,
     color: "#666",
-    marginTop: 5,
     fontStyle: "italic",
+    marginBottom: 5,
   },
   orderAmount: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#28A745",
+    color: "#27AE60",
     marginTop: 5,
   },
   remainingAmount: {
     fontSize: 15,
-    color: "#E74C3C",
     fontWeight: "bold",
-    marginBottom: 5,
+    color: "#E74C3C",
+    marginTop: 2,
   },
   actionButton: {
-    backgroundColor: "#3498DB",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    alignSelf: "flex-end",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFC107", // Sarımsı bir ton, "Hazır" durumu için dikkat çekici
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
   },
   actionButtonText: {
-    color: "#fff",
-    fontSize: 15,
+    color: "#FFFFFF", // Beyaz metin
+    fontSize: 16,
     fontWeight: "bold",
+    marginRight: 5,
   },
   noOrdersText: {
     textAlign: "center",
     marginTop: 50,
-    fontSize: 16,
-    color: "#888",
+    fontSize: 18,
+    color: "#555",
+    fontWeight: "bold",
   },
 });
 

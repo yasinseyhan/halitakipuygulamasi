@@ -1,56 +1,66 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1, // İçeriğin kaydırılabilir olmasını sağlar
+    flexGrow: 1, // ScrollView içeriğinin büyümesini sağlar
     padding: 20,
-    backgroundColor: "#f0f2f5", // Arka plan rengi
+    backgroundColor: "#F5F7FA", // Açık gri arka plan
   },
   label: {
     fontSize: 16,
-    marginBottom: 5,
-    color: "#333",
     fontWeight: "bold",
+    color: "#34495E",
+    marginBottom: 8,
+    marginTop: 10,
   },
   input: {
-    height: 50,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 8,
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#D5DBE1",
     fontSize: 16,
     color: "#333",
   },
   textArea: {
-    height: 100, // Daha fazla alan için
-    textAlignVertical: "top", // Metnin üstten başlaması için
-    paddingVertical: 10,
+    minHeight: 100,
+    textAlignVertical: "top", // Android'de metnin yukarıdan başlamasını sağlar
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ccc",
+    backgroundColor: "#FFFFFF",
     borderRadius: 8,
-    backgroundColor: "#fff",
     marginBottom: 15,
-    overflow: "hidden", // Picker'ın kenarlıklarını düzeltir
+    borderWidth: 1,
+    borderColor: "#D5DBE1",
+    overflow: "hidden", // iOS'ta kenarlıkların taşmasını engeller
   },
   picker: {
-    height: 50,
+    height: Platform.OS === "ios" ? 150 : 50, // iOS'ta daha uzun picker
     width: "100%",
+    color: "#333",
   },
   button: {
-    backgroundColor: "#2C3E50", // Koyu mavi tonu
-    padding: 15,
+    backgroundColor: "#007BFF", // Mavi buton rengi
+    paddingVertical: 15,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
+    shadowColor: "#000", // Gölgeler
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  activityIndicator: {
+    marginTop: 20,
+    marginBottom: 20,
   },
 });
 

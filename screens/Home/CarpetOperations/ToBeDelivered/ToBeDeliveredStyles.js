@@ -1,50 +1,109 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-  container: { flex: 2, backgroundColor: "#f0f2f5" },
-  listContent: { padding: 12 },
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F7FA",
+    paddingTop: 10,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5F7FA",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#555",
+  },
+  listContent: {
+    paddingHorizontal: 10,
+    paddingBottom: 20,
+  },
   orderCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 10,
-    marginBottom: 16,
-    padding: 160,
+    padding: 15,
+    marginBottom: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  cardContent: { marginBottom: 10 },
-  customerName: { fontWeight: "bold", fontSize: 16, color: "#2C3E50" },
-  customerPhone: { fontSize: 15, color: "#34495E", marginTop: 2 },
-  customerAddress: { fontSize: 14, color: "#555", marginTop: 2 },
-  customerRegion: { fontSize: 14, color: "#888", marginTop: 2 },
-  orderDate: { fontSize: 13, color: "#888", marginTop: 2 },
-  itemSummary: { fontSize: 14, color: "#333", marginTop: 6 },
-  orderAmount: {
+  cardContent: {
+    marginBottom: 10,
+  },
+  customerName: {
+    fontSize: 18,
     fontWeight: "bold",
-    fontSize: 15,
-    color: "#28A745",
-    marginTop: 6,
+    color: "#2C3E50",
+    marginBottom: 5,
   },
-  remainingAmount: { fontSize: 14, color: "#E74C3C", marginTop: 2 },
+  customerPhone: {
+    fontSize: 15,
+    color: "#555",
+    marginBottom: 3,
+  },
+  customerAddress: {
+    fontSize: 14,
+    color: "#777",
+    marginBottom: 3,
+  },
+  orderDate: {
+    // Alış tarihi için
+    fontSize: 14,
+    color: "#777",
+    marginBottom: 3,
+  },
+  deliveryDate: {
+    // Teslim tarihi için (bu ekranda daha vurgulu olabilir)
+    fontSize: 14,
+    color: "#777",
+    fontWeight: "bold", // Teslim tarihi önemli olduğu için kalın yapabiliriz
+    marginBottom: 5,
+  },
+  itemSummary: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    marginBottom: 5,
+  },
+  orderAmount: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#27AE60",
+    marginTop: 5,
+  },
+  remainingAmount: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#E74C3C",
+    marginTop: 2,
+  },
   actionButton: {
-    backgroundColor: "#2C3E50",
-    padding: 10,
-    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
+    backgroundColor: "#007BFF", // Mavi tonu, "Teslimata Çıktı" anlamı için
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
   },
-  actionButtonText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
+  actionButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginRight: 5,
+  },
   noOrdersText: {
     textAlign: "center",
-    marginTop: 40,
-    color: "#888",
-    fontSize: 16,
+    marginTop: 50,
+    fontSize: 18,
+    color: "#555",
+    fontWeight: "bold",
   },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, color: "#555" },
 });
 
 export default styles;

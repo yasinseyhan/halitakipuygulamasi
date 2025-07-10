@@ -111,13 +111,13 @@ const SearchOrder = ({ navigation }) => {
       )}
       {/* Tarihleri OrderDetailScreen'deki formatDate fonksiyonu gibi formatlıyoruz */}
       <Text style={styles.orderDate}>
-        Sipariş Tarihi:{" "}
+        Sipariş Tarihi:
         {item.orderDate
           ? item.orderDate.toDate().toLocaleDateString("tr-TR") // Timestamp'ten Date'e çevirip formatla
           : "Tarih Yok"}
       </Text>
       <Text style={styles.deliveryDate}>
-        Teslim Tarihi:{" "}
+        Teslim Tarihi:
         {item.deliveryDate
           ? item.deliveryDate.toDate().toLocaleDateString("tr-TR") // Timestamp'ten Date'e çevirip formatla
           : "Tarih Yok"}

@@ -43,6 +43,7 @@ import MainTabs from "../components/MainTabs";
 // DİĞER EKRANLAR
 import CustomerDetailScreen from "./Home/CustomerOperations/CustomerDetailScreen/CustomerDetailScreen";
 import OrderDetailScreen from "./Home/OrderOperations/OrderDeatilScreen/OrderDetailScreen";
+import CreditBookScreen from "./Home/OrderOperations/CreditBook/CreditBook";
 
 const Stack = createNativeStackNavigator();
 
@@ -73,7 +74,7 @@ const AppNavigator = () => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="ToBeReceived"
+          name="ToBeReceived"w
           component={ToBeReceived}
           options={{
             title: "Teslim Alınacaklar",
@@ -171,6 +172,11 @@ const AppNavigator = () => {
             headerStyle: { backgroundColor: "#2C3E50" },
             headerTintColor: "#fff",
           }}
+        />
+        <Stack.Screen
+          name="CreditBook"
+          component={CreditBookScreen}
+          options={{ title: "Veresiye Defteri" }}
         />
         <Stack.Screen
           name="OrderDetail"

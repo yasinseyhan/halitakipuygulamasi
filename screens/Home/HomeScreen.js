@@ -105,6 +105,21 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate("AddExpense")}
           />
         </View>
+        <View style={styles.row}>
+          <MenuBox
+            title="Veresiye Defteri"
+            icon="📝" // Kalem veya defter ikonu, uygun bir emoji seçebiliriz.
+            borderColor="#FF9800" // Turuncu tonu, diğerlerine uyumlu
+            onPress={() => navigation.navigate("CreditBook")} // 'CreditBook' olarak tanımladığımız ekran adı
+          />
+          {/* İstersen buraya başka bir MenuBox ekleyebilir veya boş bırakabilirsin */}
+          <MenuBox
+            title="Hesap Ayarları" // Buton başlığını da AccountSettings'e uygun yapabiliriz
+            icon="⚙️"
+            borderColor="#607D8B"
+            onPress={() => navigation.navigate("AccountSettings")} // AccountSettings sayfasına yönlendir
+          />
+        </View>
       </ScrollView>
     </View>
   );

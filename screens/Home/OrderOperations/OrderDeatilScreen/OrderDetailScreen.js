@@ -1,4 +1,3 @@
-// src/screens/Home/OrderOperations/OrderDetail/OrderDetail.js
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -11,15 +10,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
-import { firestore } from "../../../../src/firebaseConfig"; // Firebase config dosyanızın yolunu kontrol edin
+import { firestore } from "../../../../src/firebaseConfig";
 
 const OrderDetailScreen = ({ route, navigation }) => {
-  const { order: initialOrder } = route.params; // CustomerDetailScreen'den gelen sipariş objesi
-  const [order, setOrder] = useState(initialOrder); // Güncellemeler için state'e al
+  const { order: initialOrder } = route.params;
+  const [order, setOrder] = useState(initialOrder);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Firestore'dan sipariş detaylarını yenileme fonksiyonu (güncellemeler için)
   const fetchOrderDetails = useCallback(async () => {
     if (!initialOrder || !initialOrder.id) {
       setError("Sipariş ID'si bulunamadı.");
@@ -32,7 +30,21 @@ const OrderDetailScreen = ({ route, navigation }) => {
       const orderSnap = await getDoc(orderRef);
 
       if (orderSnap.exists()) {
-        setOrder({ id: orderSnap.id, ...orderSnap.data() });
+        // Tarih objelerini Timestamp'ten Date'e dönüştürmeyi unutmayın
+        const orderData = orderSnap.data();
+        setOrder({
+          id: orderSnap.id,
+          ...orderData,
+          orderDate: orderData.orderDate?.toDate
+            ? orderData.orderDate.toDate()
+            : orderData.orderDate,
+          pickupDate: orderData.pickupDate?.toDate
+            ? orderData.pickupDate.toDate()
+            : orderData.pickupDate,
+          deliveryDate: orderData.deliveryDate?.toDate
+            ? orderData.deliveryDate.toDate()
+            : orderData.deliveryDate,
+        });
       } else {
         setError("Sipariş bulunamadı.");
         Alert.alert("Hata", "Sipariş detayları bulunamadı.");
@@ -50,22 +62,23 @@ const OrderDetailScreen = ({ route, navigation }) => {
   }, [initialOrder]);
 
   useEffect(() => {
-    // Ekran odaklandığında verileri yeniden çek
     const unsubscribe = navigation.addListener("focus", () => {
       fetchOrderDetails();
     });
     return unsubscribe;
   }, [navigation, fetchOrderDetails]);
 
-  // Yardımcı fonksiyon: Tarihleri okunabilir formatta gösterir
   const formatDate = (timestamp) => {
     if (timestamp && timestamp.toDate) {
       return timestamp.toDate().toLocaleDateString("tr-TR");
     }
+    // Eğer zaten Date objesiyse veya null/undefined ise
+    if (timestamp instanceof Date) {
+      return timestamp.toLocaleDateString("tr-TR");
+    }
     return "Belirtilmemiş";
   };
 
-  // Sipariş durumunu güncelleme fonksiyonu (Örnek: Teslim Edildi olarak işaretle)
   const handleUpdateStatus = async (newStatus) => {
     if (!order || !order.id) {
       Alert.alert("Hata", "Sipariş bilgisi eksik.");
@@ -87,9 +100,8 @@ const OrderDetailScreen = ({ route, navigation }) => {
               const orderRef = doc(firestore, "orders", order.id);
               await updateDoc(orderRef, {
                 status: newStatus,
-                updatedAt: Timestamp.now(), // Güncelleme zamanını kaydet
+                updatedAt: Timestamp.now(),
               });
-              // Güncel durumu hemen yansıtmak için local state'i güncelle
               setOrder((prevOrder) => ({ ...prevOrder, status: newStatus }));
               Alert.alert(
                 "Başarılı",
@@ -108,8 +120,6 @@ const OrderDetailScreen = ({ route, navigation }) => {
   };
 
   const navigateToEditOrder = () => {
-    // Burada "AddOrder" ekranına gidip siparişi düzenleme modunda açabilirsiniz.
-    // "AddOrder" ekranınızın düzenleme modunu desteklemesi gerekir.
     navigation.navigate("AddOrder", { order: order, isEditing: true });
   };
 
@@ -172,6 +182,12 @@ const OrderDetailScreen = ({ route, navigation }) => {
             </Text>
           </View>
           <View style={styles.detailRow}>
+            <Text style={styles.label}>Bölge:</Text>
+            <Text style={styles.value}>
+              {order.customerRegionName || "Belirtilmemiş"}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
             <Text style={styles.label}>Alım Tarihi:</Text>
             <Text style={styles.value}>{formatDate(order.pickupDate)}</Text>
           </View>
@@ -179,6 +195,25 @@ const OrderDetailScreen = ({ route, navigation }) => {
             <Text style={styles.label}>Teslim Tarihi:</Text>
             <Text style={styles.value}>{formatDate(order.deliveryDate)}</Text>
           </View>
+          {/* Sürücü Bilgileri Eklendi */}
+          {(order.driverName || order.driverVehiclePlate) && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Sürücü Adı:</Text>
+                <Text style={styles.value}>
+                  {order.driverName || "Belirtilmemiş"}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Araç Plakası:</Text>
+                <Text style={styles.value}>
+                  {order.driverVehiclePlate || "Belirtilmemiş"}
+                </Text>
+              </View>
+            </>
+          )}
+          <View style={styles.divider} />
           <View style={styles.detailRow}>
             <Text style={styles.label}>Toplam Tutar:</Text>
             <Text style={styles.value}>
@@ -188,7 +223,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
           <View style={styles.detailRow}>
             <Text style={styles.label}>İndirim:</Text>
             <Text style={styles.value}>
-              {order.discountAmount ? order.discountAmount.toFixed(2) : "0.00"}{" "}
+              {order.discountAmount ? order.discountAmount.toFixed(2) : "0.00"}
               TL
             </Text>
           </View>
@@ -197,7 +232,7 @@ const OrderDetailScreen = ({ route, navigation }) => {
             <Text style={styles.value}>
               {order.discountedTotal
                 ? order.discountedTotal.toFixed(2)
-                : "0.00"}{" "}
+                : "0.00"}
               TL
             </Text>
           </View>
@@ -212,10 +247,16 @@ const OrderDetailScreen = ({ route, navigation }) => {
             <Text style={styles.value}>
               {order.remainingAmount
                 ? order.remainingAmount.toFixed(2)
-                : "0.00"}{" "}
+                : "0.00"}
               TL
             </Text>
           </View>
+          {order.notes && ( // Notlar varsa göster
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Notlar:</Text>
+              <Text style={styles.value}>{order.notes}</Text>
+            </View>
+          )}
         </View>
 
         {/* Sipariş Kalemleri */}
@@ -295,7 +336,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     borderLeftWidth: 5,
-    borderLeftColor: "#2C3E50", // Kartın sol çizgisi için renk
+    borderLeftColor: "#2C3E50",
   },
   cardHeader: {
     flexDirection: "row",
@@ -334,7 +375,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#555",
-    width: 120, // Etiketler için sabit genişlik
+    width: 120,
   },
   value: {
     flex: 1,
@@ -384,12 +425,18 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.8)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 10, // Diğer içeriklerin üzerinde olmasını sağlar
+    zIndex: 10,
   },
   loadingOverlayText: {
     marginTop: 10,
     fontSize: 16,
     color: "#007BFF",
+  },
+  divider: {
+    // Yeni ayırıcı stil
+    height: 1,
+    backgroundColor: "#ECEFF1",
+    marginVertical: 10,
   },
 });
 

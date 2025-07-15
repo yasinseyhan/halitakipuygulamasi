@@ -195,20 +195,15 @@ const OrderDetailScreen = ({ route, navigation }) => {
             <Text style={styles.label}>Teslim Tarihi:</Text>
             <Text style={styles.value}>{formatDate(order.deliveryDate)}</Text>
           </View>
-          {/* Sürücü Bilgileri Eklendi */}
+          {/* Sürücü Bilgileri Güncellendi */}
           {(order.driverName || order.driverVehiclePlate) && (
             <>
               <View style={styles.divider} />
               <View style={styles.detailRow}>
-                <Text style={styles.label}>Sürücü Adı:</Text>
+                <Text style={styles.label}>Sürücü:</Text>
                 <Text style={styles.value}>
                   {order.driverName || "Belirtilmemiş"}
-                </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Araç Plakası:</Text>
-                <Text style={styles.value}>
-                  {order.driverVehiclePlate || "Belirtilmemiş"}
+                  {order.driverVehiclePlate && ` (${order.driverVehiclePlate})`}
                 </Text>
               </View>
             </>
@@ -266,7 +261,9 @@ const OrderDetailScreen = ({ route, navigation }) => {
             {order.items.map((item, index) => (
               <View key={index} style={styles.itemRow}>
                 <Text style={styles.itemText}>
-                  {item.productName} ({item.quantityValue} {item.productUnit})
+                  {/* itemCount'ı buraya ekledik */}
+                  {item.itemCount || 1} Adet {item.productName} (
+                  {item.quantityValue} {item.productUnit})
                 </Text>
                 <Text style={styles.itemPrice}>
                   {item.lineTotal ? item.lineTotal.toFixed(2) : "0.00"} TL
@@ -277,8 +274,8 @@ const OrderDetailScreen = ({ route, navigation }) => {
         )}
 
         {/* Durum Güncelleme Butonları (Örnek) */}
-        <View style={[styles.card, { marginTop: 20 }]}>
-          <Text style={styles.cardTitle}>Sipariş Durumunu Güncelle</Text>
+        {/* <View style={[styles.card, { marginTop: 20 }]}> */}
+        {/* <Text style={styles.cardTitle}>Sipariş Durumunu Güncelle</Text>
           <TouchableOpacity
             style={[styles.statusButton, { backgroundColor: "#28A745" }]}
             onPress={() => handleUpdateStatus("Teslim Edildi")}
@@ -298,9 +295,9 @@ const OrderDetailScreen = ({ route, navigation }) => {
             <Text style={styles.statusButtonText}>
               Yıkamada Olarak İşaretle
             </Text>
-          </TouchableOpacity>
-          {/* İhtiyacınıza göre daha fazla durum butonu ekleyebilirsiniz */}
-        </View>
+          </TouchableOpacity> */}
+        {/* İhtiyacınıza göre daha fazla durum butonu ekleyebilirsiniz */}
+        {/* </View> */}
       </ScrollView>
     </View>
   );
@@ -372,7 +369,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   label: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     color: "#555",
     width: 120,

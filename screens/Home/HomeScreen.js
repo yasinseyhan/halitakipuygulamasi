@@ -51,16 +51,16 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <View style={styles.row}>
           <BigButton
-            title="Sipariş Ekle"
-            color="#2196F3"
-            icon="➕"
-            onPress={() => navigation.navigate("AddOrder")}
-          />
-          <BigButton
             title="Sipariş Ara"
             color="#03A9F4"
             icon="🔍"
             onPress={() => navigation.navigate("SearchOrder")}
+          />
+          <BigButton
+            title="Sipariş Ekle"
+            color="#2196F3"
+            icon="➕"
+            onPress={() => navigation.navigate("AddOrder")}
           />
         </View>
         <View style={styles.row}>

@@ -1,5 +1,3 @@
-// src/screens/Home/OrderOperations/Received/Received.js
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -19,11 +17,11 @@ import {
   doc,
   updateDoc,
   serverTimestamp,
-  Timestamp, // Firestore Timestamp'i import etmeyi unutmayın!
+  Timestamp,
 } from "firebase/firestore";
 import { firestore } from "../../../../src/firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
-import DatePickerHeader from "../../../../components/DatePickerHeader"; // DatePickerHeader'ın doğru yolu
+import DatePickerHeader from "../../../../components/DatePickerHeader";
 
 const Received = ({ navigation }) => {
   const [orders, setOrders] = useState([]);

@@ -33,7 +33,7 @@ const AddCustomer = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerPhoneNumber, setCustomerPhoneNumber] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [customerNotes, setCustomerNotes] = useState("");
+  // const [customerNotes, setCustomerNotes] = useState("");
   // selectedRegionId'yi null yerine boş string olarak başlatıyoruz
   const [selectedRegionId, setSelectedRegionId] = useState("");
   const [regions, setRegions] = useState([]);
@@ -77,7 +77,7 @@ const AddCustomer = () => {
             setCustomerName(data.customerName || "");
             setCustomerPhoneNumber(data.customerPhoneNumber || "");
             setCustomerAddress(data.customerAddress || "");
-            setCustomerNotes(data.customerNotes || "");
+            // setCustomerNotes(data.customerNotes || "");
             // regionId yoksa veya null ise boş string "" olarak ayarla
             setSelectedRegionId(data.regionId || "");
           } else {
@@ -89,7 +89,7 @@ const AddCustomer = () => {
           setCustomerName("");
           setCustomerPhoneNumber("");
           setCustomerAddress("");
-          setCustomerNotes("");
+          // setCustomerNotes("");
           setSelectedRegionId(""); // Boş string olarak ayarla
         }
       } catch (error) {
@@ -145,7 +145,7 @@ const AddCustomer = () => {
         customerName: customerName.trim(),
         customerPhoneNumber: customerPhoneNumber.trim(),
         customerAddress: customerAddress.trim(),
-        customerNotes: customerNotes.trim(),
+        // customerNotes: customerNotes.trim(),
         regionId: selectedRegion.id,
         regionName: selectedRegion.name,
         updatedAt: serverTimestamp(), // Güncelleme zaman damgası
@@ -219,7 +219,7 @@ const AddCustomer = () => {
         multiline
         numberOfLines={4}
       />
-      <Text style={styles.label}>Notlar:</Text>
+      {/* <Text style={styles.label}>Notlar:</Text>
       <TextInput
         style={[styles.input, styles.textArea]}
         placeholder="Ek Notlar"
@@ -227,7 +227,7 @@ const AddCustomer = () => {
         onChangeText={setCustomerNotes}
         multiline
         numberOfLines={4}
-      />
+      /> */}
       <Text style={styles.label}>Bölge:</Text>
       <View style={styles.pickerContainer}>
         {/* Picker'ı sadece loadingForm false ve regions listesi doluysa render et */}

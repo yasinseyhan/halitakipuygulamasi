@@ -1,4 +1,3 @@
-// src/screens/Home/OrderOperations/AddOrder/AddOrder.js
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -30,42 +29,47 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { firestore } from "../../../../src/firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
 
-import styles from "./AddOrderStyles"; // AddOrder stillerini ayrı bir dosyadan alıyoruz
+import styles from "./AddOrderStyles"; // Stil dosyanızı import edin
 
 const AddOrder = ({ navigation, route }) => {
-  // Mevcut müşteri bilgilerini tutan state'ler
+  // Müşteri bilgileri state'leri
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerRegionName, setCustomerRegionName] = useState("");
+  const [customer, setCustomer] = useState(null); // Seçilen müşteri objesi
 
+  // Ürün kalemleri state'i (itemCount artık hesaplamaya dahil)
   const [items, setItems] = useState([
     {
       productId: "",
       productName: "",
       productCategory: "",
       productUnit: "",
-      basePrice: "",
-      quantityValue: "",
+      basePrice: "", // Birim fiyat (örn: m² başına fiyat)
+      quantityValue: "", // Birim başına miktar (örn: 6 metrekare)
+      itemCount: "1", // Kaç adet/parça olduğu (örn: 4 adet halı)
       lineTotal: 0,
+      calculatedTotalQuantity: 0, // Yeni: (quantityValue * itemCount)
     },
   ]);
+
   const [totalAmount, setTotalAmount] = useState(0);
   const [paidAmount, setPaidAmount] = useState("");
   const [loading, setLoading] = useState(false);
-  const [customer, setCustomer] = useState(null); // Seçilen müşteri objesi (müşterinin Firestore ID'si veya tam objesi)
   const [allProducts, setAllProducts] = useState([]);
   const [discountAmount, setDiscountAmount] = useState("");
   const [pickupDate, setPickupDate] = useState(new Date());
   const [deliveryDate, setDeliveryDate] = useState(new Date());
   const [showPickupPicker, setShowPickupPicker] = useState(false);
   const [showDeliveryPicker, setShowDeliveryPicker] = useState(false);
+  const [orderNotes, setOrderNotes] = useState("");
 
   // Sürücü state'leri
   const [drivers, setDrivers] = useState([]);
   const [selectedDriverId, setSelectedDriverId] = useState(null);
-  const [driverName, setDriverName] = useState(""); // Seçilen sürücünün adı
-  const [driverVehiclePlate, setDriverVehiclePlate] = useState(""); // Seçilen sürücünün plakası
+  const [driverName, setDriverName] = useState("");
+  const [driverVehiclePlate, setDriverVehiclePlate] = useState("");
 
   // Düzenleme modunda sipariş varsa (route.params'tan alıyoruz)
   const { order: editingOrder, isEditing } = route.params || {};
@@ -77,7 +81,14 @@ const AddOrder = ({ navigation, route }) => {
       setCustomerPhone(editingOrder.customerPhone || "");
       setCustomerAddress(editingOrder.customerAddress || "");
       setCustomerRegionName(editingOrder.customerRegionName || "");
-      setItems(editingOrder.items || []);
+      setItems(
+        editingOrder.items.map((item) => ({
+          ...item,
+          itemCount: item.itemCount ? String(item.itemCount) : "1",
+          quantityValue: item.quantityValue ? String(item.quantityValue) : "",
+          basePrice: item.basePrice ? String(item.basePrice) : "",
+        })) || []
+      );
       setTotalAmount(editingOrder.totalAmount || 0);
       setDiscountAmount(editingOrder.discountAmount?.toString() || "0");
       setPaidAmount(editingOrder.paidAmount?.toString() || "0");
@@ -98,8 +109,8 @@ const AddOrder = ({ navigation, route }) => {
       setSelectedDriverId(editingOrder.driverId || null);
       setDriverName(editingOrder.driverName || "");
       setDriverVehiclePlate(editingOrder.driverVehiclePlate || "");
-      // Not: editingOrder.customerId varsa, customer objesini de set etmeliyiz
-      // Bunun için ayrı bir fetchCustomerById fonksiyonu iyi olacaktır.
+      setOrderNotes(editingOrder.notes || "");
+
       if (editingOrder.customerId) {
         const fetchCustomer = async () => {
           try {
@@ -123,8 +134,6 @@ const AddOrder = ({ navigation, route }) => {
     if (route.params?.selectedCustomer) {
       const selectedCust = route.params.selectedCustomer;
       setCustomer(selectedCust);
-      // Müşteri seçildiğinde, manuel inputların editable durumunu kontrol et
-      // ve ilgili state'leri güncelle
       setCustomerName(
         selectedCust.name ||
           selectedCust.fullName ||
@@ -133,10 +142,7 @@ const AddOrder = ({ navigation, route }) => {
           ""
       );
       setCustomerPhone(
-        selectedCust.phone ||
-          selectedCust.customerPhoneNumber ||
-          selectedCust.customerPhone ||
-          ""
+        selectedCust.phone || selectedCust.customerPhoneNumber || ""
       );
       setCustomerAddress(
         selectedCust.address || selectedCust.customerAddress || ""
@@ -144,7 +150,7 @@ const AddOrder = ({ navigation, route }) => {
       setCustomerRegionName(
         selectedCust.regionName || selectedCust.region || ""
       );
-      navigation.setParams({ selectedCustomer: undefined }); // Parametreyi temizle
+      navigation.setParams({ selectedCustomer: undefined });
     }
   }, [route.params?.selectedCustomer]);
 
@@ -169,7 +175,6 @@ const AddOrder = ({ navigation, route }) => {
         Alert.alert("Hata", "Ürünler yüklenirken bir sorun oluştu.");
       }
     );
-
     return () => unsubscribe();
   }, []);
 
@@ -185,36 +190,32 @@ const AddOrder = ({ navigation, route }) => {
 
         setDrivers(fetchedDrivers);
 
-        // Eğer düzenleme modundaysak ve editingOrder'da driverId varsa onu seçili yap
         if (isEditing && editingOrder?.driverId) {
           const foundDriver = fetchedDrivers.find(
             (d) => d.id === editingOrder.driverId
           );
           if (foundDriver) {
             setSelectedDriverId(foundDriver.id);
-            setDriverName(foundDriver.name); // Mevcut sürücü adını da set et
-            setDriverVehiclePlate(foundDriver.vehiclePlate); // Mevcut plaka adını da set et
+            setDriverName(foundDriver.name);
+            setDriverVehiclePlate(foundDriver.vehiclePlate);
           }
         } else if (fetchedDrivers.length > 0) {
-          // Yeni sipariş ise ve sürücüler varsa ilkini varsayılan seç
           setSelectedDriverId(fetchedDrivers[0].id);
           setDriverName(fetchedDrivers[0].name);
           setDriverVehiclePlate(fetchedDrivers[0].vehiclePlate);
         } else {
           setSelectedDriverId(null);
-          setDriverName(""); // Sürücü yoksa temizle
-          setDriverVehiclePlate(""); // Sürücü yoksa temizle
+          setDriverName("");
+          setDriverVehiclePlate("");
         }
       } catch (error) {
         console.error("Sürücüler çekilirken hata oluştu: ", error);
         Alert.alert("Hata", "Sürücüler yüklenirken bir sorun oluştu.");
       }
     };
-
     fetchDrivers();
-  }, [isEditing, editingOrder]); // isEditing ve editingOrder değişikliklerini dinle
+  }, [isEditing, editingOrder]);
 
-  // Picker'dan sürücü seçildiğinde çalışacak özel handler
   const handleDriverPickerChange = (itemValue) => {
     setSelectedDriverId(itemValue);
     if (itemValue) {
@@ -224,25 +225,37 @@ const AddOrder = ({ navigation, route }) => {
         setDriverVehiclePlate(selectedDriver.vehiclePlate);
       }
     } else {
-      // "Sürücü Seçiniz" (veya null) seçeneği seçilirse alanları temizle
       setDriverName("");
       setDriverVehiclePlate("");
     }
   };
 
+  // !!! BURASI ÖNEMLİ: Toplam tutarı ve satır toplamlarını yeniden hesapla !!!
   useEffect(() => {
     let currentTotal = 0;
-    // item.lineTotal'i doğrudan hesaplamak yerine, quantityValue ve basePrice'dan türetin
     const updatedItems = items.map((item) => {
-      const quantityValue = parseFloat(item.quantityValue) || 0;
-      const basePrice = parseFloat(item.basePrice) || 0;
-      const lineTotal = quantityValue * basePrice; // Hesapla
+      const unitValue = parseFloat(item.quantityValue) || 0; // Birim başına miktar (örn: 6 metrekare)
+      const count = parseInt(item.itemCount || "1") || 1; // Kaç adet/parça (örn: 4 adet)
+      const basePrice = parseFloat(item.basePrice) || 0; // Birim fiyat (örn: m² fiyatı)
+
+      // Toplam metrekare / adet / takım vb. miktarı
+      const calculatedTotalQuantity = unitValue * count;
+
+      // Satır toplamı: (toplam miktar * birim fiyat)
+      const lineTotal = calculatedTotalQuantity * basePrice;
+
       currentTotal += lineTotal;
-      return { ...item, lineTotal: parseFloat(lineTotal.toFixed(2)) }; // Yuvarla ve sayı olarak sakla
+      return {
+        ...item,
+        calculatedTotalQuantity: parseFloat(calculatedTotalQuantity.toFixed(2)),
+        lineTotal: parseFloat(lineTotal.toFixed(2)),
+      };
     });
     setItems(updatedItems);
-    setTotalAmount(parseFloat(currentTotal.toFixed(2))); // Yuvarla ve sayı olarak sakla
-  }, [items.map((i) => i.quantityValue + i.basePrice).join("")]);
+    setTotalAmount(parseFloat(currentTotal.toFixed(2)));
+  }, [
+    items.map((i) => i.quantityValue + i.basePrice + i.itemCount).join(""), // quantityValue, basePrice VEYA itemCount değiştiğinde tetikle
+  ]);
 
   const handleAddItem = () => {
     setItems([
@@ -254,15 +267,29 @@ const AddOrder = ({ navigation, route }) => {
         productUnit: "",
         basePrice: "",
         quantityValue: "",
-        primaryLineTotal: 0,
+        itemCount: "1",
+        lineTotal: 0,
+        calculatedTotalQuantity: 0,
       },
     ]);
   };
 
   const handleRemoveItem = (index) => {
     if (items.length > 1) {
-      const newItems = items.filter((_, i) => i !== index);
-      setItems(newItems);
+      Alert.alert(
+        "Ürünü Sil",
+        "Bu ürünü siparişten kaldırmak istediğinize emin misiniz?",
+        [
+          { text: "İptal", style: "cancel" },
+          {
+            text: "Sil",
+            onPress: () => {
+              const newItems = items.filter((_, i) => i !== index);
+              setItems(newItems);
+            },
+          },
+        ]
+      );
     } else {
       Alert.alert("Uyarı", "En az bir ürün bilgisi olmalıdır.");
     }
@@ -278,9 +305,11 @@ const AddOrder = ({ navigation, route }) => {
         productName: selectedProduct ? selectedProduct.name : "",
         productCategory: selectedProduct ? selectedProduct.category : "",
         productUnit: selectedProduct ? selectedProduct.unit : "",
-        basePrice: selectedProduct ? selectedProduct.price.toString() : "", // Fiyatı string olarak saklayın
+        basePrice: selectedProduct ? selectedProduct.price.toString() : "",
         quantityValue: "",
+        itemCount: "1",
         lineTotal: 0,
+        calculatedTotalQuantity: 0,
       };
     } else {
       newItems[index][field] = value;
@@ -288,17 +317,15 @@ const AddOrder = ({ navigation, route }) => {
     setItems(newItems);
   };
 
-  // Yeni eklenecek fonksiyon: Müşteri bilgilerini temizler
   const handleClearCustomer = () => {
-    setCustomer(null); // Seçili müşteri objesini sıfırla
-    setCustomerName(""); // Adı temizle
-    setCustomerPhone(""); // Telefonu temizle
-    setCustomerAddress(""); // Adresi temizle
-    setCustomerRegionName(""); // Bölge adını temizle
+    setCustomer(null);
+    setCustomerName("");
+    setCustomerPhone("");
+    setCustomerAddress("");
+    setCustomerRegionName("");
   };
 
   const handleSubmitOrder = async () => {
-    // Müşteri bilgileri kontrolü
     if (!customer && (!customerName || !customerPhone || !customerAddress)) {
       Alert.alert(
         "Hata",
@@ -306,8 +333,6 @@ const AddOrder = ({ navigation, route }) => {
       );
       return;
     }
-
-    // Ürün bilgileri kontrolü
     if (
       items.some(
         (item) => !item.productId || !item.quantityValue || !item.basePrice
@@ -316,8 +341,6 @@ const AddOrder = ({ navigation, route }) => {
       Alert.alert("Hata", "Lütfen tüm ürün bilgilerini eksiksiz giriniz.");
       return;
     }
-
-    // Sürücü seçimi kontrolü
     if (!selectedDriverId) {
       Alert.alert("Hata", "Lütfen siparişe atanacak bir sürücü seçin.");
       return;
@@ -326,13 +349,11 @@ const AddOrder = ({ navigation, route }) => {
     setLoading(true);
     try {
       let customerIdToUse = customer ? customer.id : null;
-
-      const finalCustomerName = customerName; // Artık doğrudan state'ten alıyoruz
+      const finalCustomerName = customerName;
       const finalCustomerPhone = customerPhone;
       const finalCustomerAddress = customerAddress;
       const finalCustomerRegionName = customerRegionName;
 
-      // Eğer müşteri seçilmemişse yeni bir müşteri oluştur
       if (!customerIdToUse) {
         const newCustomerRef = await addDoc(
           collection(firestore, "customers"),
@@ -367,7 +388,9 @@ const AddOrder = ({ navigation, route }) => {
           productCategory: item.productCategory,
           productUnit: item.productUnit,
           basePrice: parseFloat(item.basePrice) || 0,
-          quantityValue: parseFloat(item.quantityValue) || 0,
+          quantityValue: parseFloat(item.quantityValue) || 0, // Birim başına miktar
+          itemCount: parseInt(item.itemCount || "1") || 1, // Adet
+          calculatedTotalQuantity: item.calculatedTotalQuantity, // Yeni eklenen, toplam miktar (örn: Toplam 24 m²)
           lineTotal: item.lineTotal,
         })),
         totalAmount: totalAmount,
@@ -376,9 +399,10 @@ const AddOrder = ({ navigation, route }) => {
         paidAmount: parsedPaidAmount,
         remainingAmount: remainingAmount,
         status: "Teslim Alınacak",
-        driverId: selectedDriverId, // Sürücü ID'si
-        driverName: driverName, // Seçilen sürücünün adı
-        driverVehiclePlate: driverVehiclePlate, // Seçilen sürücünün plakası
+        driverId: selectedDriverId,
+        driverName: driverName,
+        driverVehiclePlate: driverVehiclePlate,
+        notes: orderNotes,
         orderDate: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -386,14 +410,9 @@ const AddOrder = ({ navigation, route }) => {
 
       if (isEditing && editingOrder?.id) {
         const orderRef = doc(firestore, "orders", editingOrder.id);
-        await updateDoc(orderRef, orderData); // Güncelleme işlemi
+        await updateDoc(orderRef, orderData);
         Alert.alert("Başarılı", "Sipariş başarıyla güncellendi!", [
-          {
-            text: "Tamam",
-            onPress: () => {
-              navigation.navigate("MainTabs"); // Güncellemeden sonra Ana Sayfaya git
-            },
-          },
+          { text: "Tamam", onPress: () => navigation.navigate("MainTabs") },
         ]);
       } else {
         const orderRef = await addDoc(
@@ -404,9 +423,7 @@ const AddOrder = ({ navigation, route }) => {
           {
             text: "Tamam",
             onPress: () => {
-              // Yeni siparişten sonra Ana Sayfaya git
               navigation.navigate("MainTabs");
-
               // Formu sıfırla
               setCustomer(null);
               setCustomerName("");
@@ -421,7 +438,9 @@ const AddOrder = ({ navigation, route }) => {
                   productUnit: "",
                   basePrice: "",
                   quantityValue: "",
+                  itemCount: "1",
                   lineTotal: 0,
+                  calculatedTotalQuantity: 0,
                 },
               ]);
               setTotalAmount(0);
@@ -429,7 +448,7 @@ const AddOrder = ({ navigation, route }) => {
               setDiscountAmount("");
               setPickupDate(new Date());
               setDeliveryDate(new Date());
-              // Sürücüyü de sıfırla, eğer sürücüler varsa ilkini tekrar seç
+              setOrderNotes("");
               setSelectedDriverId(drivers.length > 0 ? drivers[0].id : null);
               setDriverName(drivers.length > 0 ? drivers[0].name : "");
               setDriverVehiclePlate(
@@ -450,80 +469,60 @@ const AddOrder = ({ navigation, route }) => {
     }
   };
 
-  const renderQuantityInput = (item, index) => {
+  const renderQuantityInputPlaceholder = (productUnit) => {
+    switch (productUnit) {
+      case "Metre Kare":
+        return "m²/ürün"; // Ürün başına metrekare
+      case "Adet":
+        return "Adet/ürün"; // Ürün başına adet
+      case "Takım":
+        return "Takım/ürün"; // Ürün başına takım
+      case "Metre Tül":
+        return "mtül/ürün"; // Ürün başına metre tül
+      default:
+        return "Miktar/ürün";
+    }
+  };
+
+  // Satır toplamı metnini güncelleyen yardımcı fonksiyon
+  const getLineSummaryText = (item) => {
+    const unitValue = parseFloat(item.quantityValue) || 0;
+    const count = parseInt(item.itemCount || "1") || 1;
+    const calculatedTotalQuantity = unitValue * count;
+
+    if (!item.productUnit) {
+      return `Toplam: ${(item.lineTotal || 0).toFixed(2)} TL`;
+    }
+
+    let unitText;
     switch (item.productUnit) {
       case "Metre Kare":
-        return (
-          <TextInput
-            style={styles.smallInput}
-            placeholder="m²"
-            value={item.quantityValue}
-            onChangeText={(text) =>
-              handleItemChange(text, index, "quantityValue")
-            }
-            keyboardType="numeric"
-            placeholderTextColor="#888"
-          />
-        );
+        unitText = "m²";
+        break;
       case "Adet":
-        return (
-          <TextInput
-            style={styles.smallInput}
-            placeholder="Adet"
-            value={item.quantityValue}
-            onChangeText={(text) =>
-              handleItemChange(text, index, "quantityValue")
-            }
-            keyboardType="numeric"
-            placeholderTextColor="#888"
-          />
-        );
+        unitText = "Adet";
+        break;
       case "Takım":
-        return (
-          <TextInput
-            style={styles.smallInput}
-            placeholder="Takım"
-            value={item.quantityValue}
-            onChangeText={(text) =>
-              handleItemChange(text, index, "quantityValue")
-            }
-            keyboardType="numeric"
-            placeholderTextColor="#888"
-          />
-        );
+        unitText = "Takım";
+        break;
       case "Metre Tül":
-        return (
-          <TextInput
-            style={styles.smallInput}
-            placeholder="mtül"
-            value={item.quantityValue}
-            onChangeText={(text) =>
-              handleItemChange(text, index, "quantityValue")
-            }
-            keyboardType="numeric"
-            placeholderTextColor="#888"
-          />
-        );
+        unitText = "mtül";
+        break;
       default:
-        return (
-          <TextInput
-            style={styles.smallInput}
-            placeholder="Miktar"
-            value={item.quantityValue}
-            onChangeText={(text) =>
-              handleItemChange(text, index, "quantityValue")
-            }
-            keyboardType="numeric"
-            placeholderTextColor="#888"
-          />
-        );
+        unitText = "";
     }
+
+    return `${count} Adet ${unitValue} ${unitText} (Toplam ${calculatedTotalQuantity.toFixed(
+      2
+    )} ${unitText}) | ${item.productName || "Ürün"} | ${(
+      item.lineTotal || 0
+    ).toFixed(2)} TL`;
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#007BFF" />
         <Text style={styles.loadingText}>Sipariş kaydediliyor...</Text>
       </View>
     );
@@ -548,7 +547,7 @@ const AddOrder = ({ navigation, route }) => {
             placeholder="Müşteri Adı Soyadı"
             value={customerName}
             onChangeText={setCustomerName}
-            editable={!customer} // Seçili müşteri varsa düzenlenemez
+            editable={!customer}
             placeholderTextColor="#888"
           />
           <TextInput
@@ -557,7 +556,7 @@ const AddOrder = ({ navigation, route }) => {
             value={customerPhone}
             onChangeText={setCustomerPhone}
             keyboardType="phone-pad"
-            editable={!customer} // Seçili müşteri varsa düzenlenemez
+            editable={!customer}
             placeholderTextColor="#888"
           />
           <TextInput
@@ -565,7 +564,7 @@ const AddOrder = ({ navigation, route }) => {
             placeholder="Müşteri Adres"
             value={customerAddress}
             onChangeText={setCustomerAddress}
-            editable={!customer} // Seçili müşteri varsa düzenlenemez
+            editable={!customer}
             placeholderTextColor="#888"
           />
           <TextInput
@@ -573,10 +572,10 @@ const AddOrder = ({ navigation, route }) => {
             placeholder="Müşteri Bölge Adı"
             value={customerRegionName}
             onChangeText={setCustomerRegionName}
-            editable={!customer} // Seçili müşteri varsa düzenlenemez
+            editable={!customer}
             placeholderTextColor="#888"
           />
-          {!customer ? ( // Müşteri seçili değilse "Müşteri Seç" butonunu göster
+          {!customer ? (
             <TouchableOpacity
               style={styles.selectCustomerButton}
               onPress={() =>
@@ -595,10 +594,9 @@ const AddOrder = ({ navigation, route }) => {
               />
             </TouchableOpacity>
           ) : (
-            // Müşteri seçiliyse "Müşteriyi Temizle" butonunu göster
             <TouchableOpacity
               style={styles.clearCustomerButton}
-              onPress={handleClearCustomer} // Yeni fonksiyonu çağır
+              onPress={handleClearCustomer}
             >
               <Text style={styles.clearCustomerButtonText}>
                 Müşteriyi Temizle
@@ -668,12 +666,11 @@ const AddOrder = ({ navigation, route }) => {
                   selectedValue={selectedDriverId}
                   onValueChange={(itemValue) =>
                     handleDriverPickerChange(itemValue)
-                  } // Kendi handler'ımızı kullan
+                  }
                   style={styles.driverPicker}
                   itemStyle={styles.pickerItem}
                 >
                   <Picker.Item label="Sürücü Seçin..." value={null} />
-                  {/* null seçeneği */}
                   {drivers.map((driver) => (
                     <Picker.Item
                       key={driver.id}
@@ -683,19 +680,18 @@ const AddOrder = ({ navigation, route }) => {
                   ))}
                 </Picker>
               </View>
-              {/* Sürücü adı ve plaka TextInput'ları (editable: false) */}
               <TextInput
                 style={styles.input}
                 placeholder="Sürücü Adı"
                 value={driverName}
-                editable={false} // Otomatik doldurulacak
+                editable={false}
                 placeholderTextColor="#888"
               />
               <TextInput
                 style={styles.input}
                 placeholder="Sürücü Araç Plakası"
                 value={driverVehiclePlate}
-                editable={false} // Otomatik doldurulacak
+                editable={false}
                 placeholderTextColor="#888"
               />
             </>
@@ -733,10 +729,34 @@ const AddOrder = ({ navigation, route }) => {
               <View style={{ height: 8 }} />
 
               <View style={styles.row}>
-                {renderQuantityInput(item, index)}
+                {/* Ürün Başına Miktar Girişi (Metrekare/ürün, Adet/ürün vb.) */}
                 <TextInput
-                  style={styles.smallInput}
-                  placeholder="Birim Fiyat"
+                  style={[styles.smallInput, { flex: 0.35 }]}
+                  placeholder={renderQuantityInputPlaceholder(item.productUnit)}
+                  value={item.quantityValue}
+                  onChangeText={(text) =>
+                    handleItemChange(text, index, "quantityValue")
+                  }
+                  keyboardType="numeric"
+                  placeholderTextColor="#888"
+                />
+
+                {/* Adet Girişi */}
+                <TextInput
+                  style={[styles.smallInput, { flex: 0.25, marginLeft: 10 }]}
+                  placeholder="Adet"
+                  value={item.itemCount}
+                  onChangeText={(text) =>
+                    handleItemChange(text, index, "itemCount")
+                  }
+                  keyboardType="numeric"
+                  placeholderTextColor="#888"
+                />
+
+                {/* Birim Fiyat Girişi */}
+                <TextInput
+                  style={[styles.smallInput, { flex: 0.2, marginLeft: 10 }]}
+                  placeholder="B.Fiyat"
                   value={item.basePrice}
                   onChangeText={(text) =>
                     handleItemChange(text, index, "basePrice")
@@ -744,8 +764,17 @@ const AddOrder = ({ navigation, route }) => {
                   keyboardType="numeric"
                   placeholderTextColor="#888"
                 />
-                <Text style={styles.lineTotalText}>
-                  {(item.lineTotal || 0).toFixed(2)} TL
+              </View>
+
+              {/* Satır Özeti ve Silme Butonu */}
+              <View
+                style={[
+                  styles.row,
+                  { marginTop: 10, justifyContent: "space-between" },
+                ]}
+              >
+                <Text style={styles.lineTotalTextSummary}>
+                  {getLineSummaryText(item)}
                 </Text>
                 {items.length > 1 && (
                   <TouchableOpacity
@@ -810,6 +839,21 @@ const AddOrder = ({ navigation, route }) => {
             ).toFixed(2)}
             TL
           </Text>
+        </View>
+
+        {/* Sipariş Notları */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sipariş Notları</Text>
+          <TextInput
+            style={[styles.input, styles.notesInput]}
+            placeholder="Siparişle ilgili notlar (isteğe bağlı)"
+            value={orderNotes}
+            onChangeText={setOrderNotes}
+            multiline={true}
+            numberOfLines={4}
+            textAlignVertical="top"
+            placeholderTextColor="#888"
+          />
         </View>
 
         <TouchableOpacity

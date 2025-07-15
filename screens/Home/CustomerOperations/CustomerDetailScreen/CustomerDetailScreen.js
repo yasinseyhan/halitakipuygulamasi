@@ -10,8 +10,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   FlatList,
+  Linking, // Linking API'sini import et
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome } from "@expo/vector-icons"; // FontAwesome'u WhatsApp ikonu için import et
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { firestore } from "../../../../src/firebaseConfig"; // Firebase config dosyanızın yolunu kontrol edin
 
@@ -23,11 +24,13 @@ const CustomerDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [totalDebt, setTotalDebt] = useState(0); // Toplam borç state'i eklendi
 
   // Müşterinin siparişlerini Firestore'dan çekme fonksiyonu
   const fetchCustomerOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
+    let currentTotalDebt = 0; // Geçici borç toplamı
     try {
       if (!customer || !customer.id) {
         throw new Error("Müşteri ID'si bulunamadı.");
@@ -40,11 +43,24 @@ const CustomerDetailScreen = ({ route, navigation }) => {
       );
 
       const querySnapshot = await getDocs(q);
-      const orders = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const orders = querySnapshot.docs.map((doc) => {
+        const orderData = doc.data();
+        // Eğer siparişin ödenmemiş bakiyesi varsa, borca ekle
+        // Varsayım: Sipariş belgesinde 'remainingAmount' adında bir alan var.
+        // Veya 'totalAmount' ve 'paidAmount' alanları varsa:
+        // const debtForThisOrder = (orderData.totalAmount || 0) - (orderData.paidAmount || 0);
+        const debtForThisOrder = orderData.remainingAmount || 0; // Varsayılan olarak 0 eğer yoksa
+        if (debtForThisOrder > 0) {
+          currentTotalDebt += debtForThisOrder;
+        }
+
+        return {
+          id: doc.id,
+          ...orderData,
+        };
+      });
       setCustomerOrders(orders);
+      setTotalDebt(currentTotalDebt); // Toplam borcu güncelle
     } catch (err) {
       console.error("Müşteri siparişleri çekilirken hata oluştu:", err);
       setError("Siparişler yüklenirken bir hata oluştu: " + err.message);
@@ -78,6 +94,25 @@ const CustomerDetailScreen = ({ route, navigation }) => {
     navigation.navigate("OrderDetail", { order: order });
   };
 
+  // Telefon ikonuna basıldığında arama başlat
+  const handleCallPress = () => {
+    if (customer.customerPhoneNumber) {
+      Linking.openURL(`tel:${customer.customerPhoneNumber}`);
+    } else {
+      Alert.alert("Hata", "Müşterinin telefon numarası bulunamadı.");
+    }
+  };
+
+  // WhatsApp ikonuna basıldığında WhatsApp'ı aç
+  const handleWhatsAppPress = () => {
+    if (customer.customerPhoneNumber) {
+      const phoneNumber = customer.customerPhoneNumber.replace(/\D/g, ""); // Numaradaki tüm harf dışı karakterleri temizle
+      Linking.openURL(`whatsapp://send?phone=${phoneNumber}`);
+    } else {
+      Alert.alert("Hata", "Müşterinin telefon numarası bulunamadı.");
+    }
+  };
+
   const renderOrderItem = ({ item: order }) => (
     <TouchableOpacity
       style={styles.orderItem}
@@ -90,6 +125,12 @@ const CustomerDetailScreen = ({ route, navigation }) => {
         <Text style={styles.orderStatus}>
           Durum: {order.status || "Bilinmiyor"}
         </Text>
+        {/* Eğer siparişin borcu varsa göster */}
+        {order.remainingAmount > 0 && (
+          <Text style={styles.orderDebt}>
+            Borç: {order.remainingAmount.toFixed(2)} TL
+          </Text>
+        )}
       </View>
       <Text style={styles.orderTotal}>
         {order.discountedTotal ? order.discountedTotal.toFixed(2) : "0.00"} TL
@@ -125,6 +166,22 @@ const CustomerDetailScreen = ({ route, navigation }) => {
           <View style={styles.detailRow}>
             <Text style={styles.label}>Telefon:</Text>
             <Text style={styles.value}>{customer.customerPhoneNumber}</Text>
+            <View style={styles.contactIcons}>
+              {/* WhatsApp İkonu */}
+              <TouchableOpacity
+                onPress={handleWhatsAppPress}
+                style={styles.iconButton}
+              >
+                <FontAwesome name="whatsapp" size={32} color="#25D366" />
+              </TouchableOpacity>
+              {/* Telefon İkonu */}
+              <TouchableOpacity
+                onPress={handleCallPress}
+                style={styles.iconButton}
+              >
+                <Ionicons name="call-outline" size={32} color="#007BFF" />
+              </TouchableOpacity>
+            </View>
           </View>
           {customer.email && (
             <View style={styles.detailRow}>
@@ -132,7 +189,8 @@ const CustomerDetailScreen = ({ route, navigation }) => {
               <Text style={styles.value}>{customer.email}</Text>
             </View>
           )}
-          {customer.address && (
+          {/* Adres bilgisini buraya ekliyoruz */}
+          {customer.customerAddress && (
             <View style={styles.detailRow}>
               <Text style={styles.label}>Adres:</Text>
               <Text style={styles.value}>{customer.customerAddress}</Text>
@@ -141,13 +199,24 @@ const CustomerDetailScreen = ({ route, navigation }) => {
           {customer.customerRegionName && (
             <View style={styles.detailRow}>
               <Text style={styles.label}>Bölge:</Text>
-              <Text style={styles.value}>{customer.regionName}</Text>
+              <Text style={styles.value}>
+                {customer.customerRegionName}
+              </Text>{" "}
+              {/* customerRegionName olarak düzeltildi */}
             </View>
           )}
           {customer.notes && (
             <View style={styles.detailRow}>
               <Text style={styles.label}>Notlar:</Text>
               <Text style={styles.value}>{customer.customerNotes}</Text>
+            </View>
+          )}
+
+          {/* Toplam Borç Bilgisi */}
+          {totalDebt > 0 && (
+            <View style={[styles.detailRow, styles.debtRow]}>
+              <Text style={styles.label}>Toplam Borç:</Text>
+              <Text style={styles.debtValue}>{totalDebt.toFixed(2)} TL</Text>
             </View>
           )}
         </View>
@@ -253,7 +322,28 @@ const styles = StyleSheet.create({
   value: {
     flex: 1,
     fontSize: 16,
+    fontWeight: "500",
     color: "#333",
+    marginLeft: 10,
+  },
+  contactIcons: {
+    flexDirection: "row",
+    marginLeft: 10,
+  },
+  iconButton: {
+    paddingHorizontal: 10,
+  },
+  debtRow: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#ECEFF1",
+  },
+  debtValue: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#E74C3C", // Kırmızı renk borç için
     marginLeft: 10,
   },
   separator: {
@@ -264,7 +354,7 @@ const styles = StyleSheet.create({
   orderItem: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "center", // Dikeyde ortala
     paddingVertical: 10,
     paddingHorizontal: 5,
     backgroundColor: "#F8F8F8",
@@ -275,6 +365,7 @@ const styles = StyleSheet.create({
   },
   orderInfo: {
     flex: 1,
+    // Ek stil ayarlaması gerekebilir eğer çok fazla metin yan yana gelirse
   },
   orderDate: {
     fontSize: 15,
@@ -284,6 +375,13 @@ const styles = StyleSheet.create({
   orderStatus: {
     fontSize: 13,
     color: "#7F8C8D",
+    marginTop: 3,
+  },
+  orderDebt: {
+    // Yeni stil eklendi
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#E74C3C", // Borç için kırmızı renk
     marginTop: 3,
   },
   orderTotal: {
